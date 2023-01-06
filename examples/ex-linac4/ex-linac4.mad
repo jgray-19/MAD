@@ -2,6 +2,10 @@ local verbose_load  = true -- print loaded sequence
 local forcecv_load  = true -- force conversion
 local conf_use_ring = true
 
+local rundir = \s -> "ex_run/"..(s or '')
+local refdir = \s -> "ex_ref/"..(s or '')
+MAD.filesys.mkdir(rundir())
+
 --------------------------------------------------------------------------------
 -- Loader
 --------------------------------------------------------------------------------
@@ -13,34 +17,34 @@ local function L4_load ()
   if is_sequence(MADX:var_get'l4t') then return end
 
   -- cleaner than disabling warnings, handmade from warnings
-  MADX:load('input/linac4_unset_vars.mad')
+  MADX:load(refdir('linac4_unset_vars.mad'))
 
   -- load sequences following order in script all.seqx
   if conf_use_ring then
     if verbose_load then print("loading linac.seq...") end
-    MADX:load('input/linac.seq', 'input/linac.mad', forcecv_load)
+    MADX:load(refdir('linac.seq'), rundir('linac.mad'), forcecv_load)
   end
 
   if verbose_load then print("loading l4t.seq...") end
-  MADX:load('input/l4t.seq'  , 'input/l4t.mad'  , forcecv_load)
+  MADX:load(refdir('l4t.seq')  , rundir('l4t.mad')  , forcecv_load)
 
   if verbose_load then print("loading l4z.seq...") end
-  MADX:load('input/l4z.seq'  , 'input/l4z.mad'  , forcecv_load)
+  MADX:load(refdir('l4z.seq')  , rundir('l4z.mad')  , forcecv_load)
 
   if verbose_load then print("loading lt.seq...") end
-  MADX:load('input/lt.seq'   , 'input/lt.mad'   , forcecv_load)
+  MADX:load(refdir('lt.seq')   , rundir('lt.mad')   , forcecv_load)
 
   if verbose_load then print("loading ltb.seq...") end
-  MADX:load('input/ltb.seq'  , 'input/ltb.mad'  , forcecv_load)
+  MADX:load(refdir('ltb.seq')  , rundir('ltb.mad')  , forcecv_load)
 
   if verbose_load then print("loading bi.seq...") end
-  MADX:load('input/bi.seq'   , 'input/bi.mad'   , forcecv_load)
+  MADX:load(refdir('bi.seq')   , rundir('bi.mad')   , forcecv_load)
 
   if verbose_load then print("loading lbe.seq...") end
-  MADX:load('input/lbe.seq'  , 'input/lbe.mad'  , forcecv_load)
+  MADX:load(refdir('lbe.seq')  , rundir('lbe.mad')  , forcecv_load)
 
   if verbose_load then print("loading stitched.seq...") end
-  MADX:load('input/stitched.seq', 'input/stitched.mad', forcecv_load)
+  MADX:load(refdir('stitched.seq'), rundir('stitched.mad'), forcecv_load)
 
   local beam, beta0, option in MAD
   local linac4, l4t in MADX
@@ -109,10 +113,10 @@ end
 
 local function L4_load_str ()
   if verbose_load then print("loading nominal_minus750kV.str...") end
-  MADX:load('input/nominal_minus750kV.str', 'input/nominal_minus750kV.mad', forcecv_load)
+  MADX:load(refdir('nominal_minus750kV.str'), rundir('nominal_minus750kV.mad'), forcecv_load)
 
   if verbose_load then print("loading bi450kev.str...") end
-  MADX:load('input/bi450kev.str', 'input/bi450kev.mad', forcecv_load)
+  MADX:load(refdir('bi450kev.str'), rundir('bi450kev.mad'), forcecv_load)
 end
 
 --------------------------------------------------------------------------------
@@ -146,6 +150,6 @@ end
 
 L4_load_str()
 L4_load()
-doRing(1) :write "twiss_n"
+doRing(1) :write (rundir("twiss_n"))
 
 
