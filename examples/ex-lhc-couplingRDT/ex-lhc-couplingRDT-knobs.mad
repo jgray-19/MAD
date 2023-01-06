@@ -2,6 +2,10 @@
 -- MAD-NG takes about 40s
 -- MAD-X  takes about 2m
 
+local refdir = \s -> 'ex_ref/'..(s or '')
+local rundir = \s -> 'ex_run/'..(s or '')
+MAD.filesys.mkdir(rundir())
+
 !#############################################################################
 !############################# Setting Up Lattice ############################
 !#############################################################################
@@ -11,9 +15,9 @@ local observed in MAD.element.flags
 local assertf  in MAD.utility
 local mchklost in MAD.gphys
 
-MADX:load('lhc_as-built.seq', 'lhc_as-built.mad') -- convert and save on need
-MADX:load('opticsfile.1'    , 'opticsfile.1.mad') -- ditto
-MADX:load('lhc_unset_vars.mad') -- handmade, cleaner than disabling warnings...
+MADX:load(refdir('lhc_as-built.seq'), rundir('lhc_as-built.mad')) -- convert and save on need
+MADX:load(refdir('opticsfile.1')    , rundir('opticsfile.1.mad')) -- ditto
+MADX:load(refdir('lhc_unset_vars.mad')) -- handmade, cleaner than disabling warnings...
 
 local lhcb1, nrj in MADX
 
@@ -55,11 +59,11 @@ if true then
 !######## Match Tunes and Chromaticity                                ########
 !#############################################################################
 
-print("values before matching tunes & chromas:")
+--[[ print("values before matching tunes & chromas:")
 print("dQx.b1_sq="  , MADX.dqx_b1_sq  )
 print("dQy.b1_sq="  , MADX.dqy_b1_sq  )
 print("dQpx.b1_sq=" , MADX.dqpx_b1_sq )
-print("dQpy.b1_sq=" , MADX.dqpy_b1_sq )
+print("dQpy.b1_sq=" , MADX.dqpy_b1_sq ) ]]
 
 status, fmin, ncall = match {
   command := mchklost(twiss {sequence=lhcb1, method=4, chrom=true, observe=1}),
@@ -76,15 +80,15 @@ status, fmin, ncall = match {
     { expr = \t -> t.dq2-2   , name='dq2', tol=2.5e-3 },
   },
   objective = { fmin=2e-3 },
-  maxcall=100, info=2, !debug=2
+  maxcall=100, !info=2, !debug=2
 }
 
-print("status=", status, "fmin=", fmin, "ncall=", ncall)
+--[[ print("status=", status, "fmin=", fmin, "ncall=", ncall)
 print("values after matching tunes & chromas:")
 print("dQx.b1_sq="  , MADX.dqx_b1_sq  )
 print("dQy.b1_sq="  , MADX.dqy_b1_sq  )
 print("dQpx.b1_sq=" , MADX.dqpx_b1_sq )
-print("dQpy.b1_sq=" , MADX.dqpy_b1_sq )
+print("dQpy.b1_sq=" , MADX.dqpy_b1_sq ) ]]
 
 !#############################################################################
 !######## Match Tunes and Chromaticity                                ########
@@ -98,12 +102,12 @@ MADX['KQSX3.L1_old'] = MADX['KQSX3.L1']
 ! Power MQSX
 MADX['KQSX3.R2'] =  1e-3  ! was KQSX3.R2 =  10E-4;
 MADX['KQSX3.L2'] = -1e-3  ! was KQSX3.L2 = -10E-4;
-
+--[[ 
 print("values before matching tunes & chromas:")
 print("dQx.b1_sq="  , MADX.dqx_b1_sq  )
 print("dQy.b1_sq="  , MADX.dqy_b1_sq  )
 print("dQpx.b1_sq=" , MADX.dqpx_b1_sq )
-print("dQpy.b1_sq=" , MADX.dqpy_b1_sq )
+print("dQpy.b1_sq=" , MADX.dqpy_b1_sq ) ]]
 
 status, fmin, ncall = match {
   command := mchklost(twiss {sequence=lhcb1, method=4, chrom=true, observe=1}),
@@ -120,15 +124,15 @@ status, fmin, ncall = match {
     { expr = \t -> t.dq2-2   , name='dq2', tol=2.5e-3 },
   },
   objective = { fmin=2e-3 },
-  maxcall=100, info=2, !debug=2
+  maxcall=100, !info=2, !debug=2
 }
-
+--[[ 
 print("status=", status, "fmin=", fmin, "ncall=", ncall)
 print("values after matching tunes & chromas:")
 print("dQx.b1_sq="  , MADX.dqx_b1_sq  )
 print("dQy.b1_sq="  , MADX.dqy_b1_sq  )
 print("dQpx.b1_sq=" , MADX.dqpx_b1_sq )
-print("dQpy.b1_sq=" , MADX.dqpy_b1_sq )
+print("dQpy.b1_sq=" , MADX.dqpy_b1_sq ) ]]
 
 !#############################################################################
 !######## Match strength to remaining 4 correctors to close bump      ########
@@ -162,12 +166,12 @@ MADX:close_env()
 ! mark elements for observation
 lhcb1["S.DS.L2.B1"]:select(observed)
 lhcb1["E.DS.L2.B1"]:select(observed)
-
+--[[ 
 print("values before matching correctors:")
 print("sk1r=" , MADX.sk1r )
 print("sk2r=" , MADX.sk2r )
 print("sk3r=" , MADX.sk3r )
-print("sk4r=" , MADX.sk4r )
+print("sk4r=" , MADX.sk4r ) ]]
 
 local damap, track, option in MAD
 local mdef = {nv=6+4, mo=2, nk=4, ko=1,
@@ -228,7 +232,7 @@ status, fmin, ncall = match {
     { expr = \t -> t['E.DS.L2.B1'].__map.py:get'0100', name='E.R22.y' },
   },
   objective = { fmin=1e-12 },
-  maxcall=100, info=2, !debug=2
+  maxcall=100, !info=2, !debug=2
 }
 
 -- clear knobs: tpsa to scalar
@@ -236,22 +240,22 @@ MADX.sk1r = MADX.sk1r:get0()
 MADX.sk2r = MADX.sk2r:get0()
 MADX.sk3r = MADX.sk3r:get0()
 MADX.sk4r = MADX.sk4r:get0()
-
+--[[ 
 print("status=", status, "fmin=", fmin, "ncall=", ncall)
 print("values after matching correctors:")
 print("sk1r=" , MADX.sk1r )
 print("sk2r=" , MADX.sk2r )
 print("sk3r=" , MADX.sk3r )
-print("sk4r=" , MADX.sk4r )
+print("sk4r=" , MADX.sk4r ) ]]
 
 !#############################################################################
 !######## Match Tunes to compensate second order contribution of coupling ####
 !#############################################################################
-
+--[[ 
 print("values before matching tunes:")
 print("dQx.b1_sq="  , MADX.dqx_b1_sq  )
 print("dQy.b1_sq="  , MADX.dqy_b1_sq  )
-
+ ]]
 status, fmin, ncall = match {
   command := mchklost(twiss { sequence=lhcb1, method=4, observe=1 }),
   variables = { rtol=1e-6, -- 1 ppm
@@ -263,17 +267,17 @@ status, fmin, ncall = match {
     { expr = \t -> t.q2-60.32, name='q2' },
   },
   objective = { fmin=1e-10 },
-  maxcall=100, info=2, !debug=2
+  maxcall=100, !info=2, !debug=2
 }
-
+--[[ 
 print("status=", status, "fmin=", fmin, "ncall=", ncall)
 print("values after matching tunes:")
 print("dQx.b1_sq="  , MADX.dqx_b1_sq  )
 print("dQy.b1_sq="  , MADX.dqy_b1_sq  )
-
+ ]]
 !#############################################################################
 !######## Twiss results to output file                                ########
 !#############################################################################
 
 local tbl = twiss { sequence=lhcb1, method=4, chrom=true, coupling=true }
-tbl:write"twiss_n"
+tbl:write(rundir("twiss_n"))
