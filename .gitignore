@@ -26,3 +26,4 @@ tests/utests/*.tfs
 
 lib/luarocks*
 install
+*_run
