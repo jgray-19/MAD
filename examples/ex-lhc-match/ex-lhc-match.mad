@@ -1,31 +1,19 @@
 -- time ../mad -jp=vl ex-lhc-match.mad > ex-lhc-match.out 2>&1          33s
 
-local doplot = false ! false | true | 'pdf'
+local assertf in  MAD.utility
 
---------------------------------------------------------------------------------
-
-local assertf, atexit, pause in  MAD.utility
-if doplot == true then atexit(pause, true) end
-local dopdf = doplot == 'pdf' ; doplot = not not doplot
-
-local function plottw (mtbl, x1y2_)
-  if not doplot then return end
-  MAD.plot { table=mtbl, sequence=mtbl.__seq, name=mtbl.title,
-             x1y1 = { s={'beta11','beta22'} },
-             x1y2 = { s= x1y2_ or {'mu1','mu2'} },
-             styles = 'lines',
-             output = dopdf and 'madplot.pdf' or nil,
-           }
-end
+local refdir = \s -> 'ex_ref/'..(s or '')
+local rundir = \s -> 'ex_run/'..(s or '')
+MAD.filesys.mkdir(rundir())
 
 local function LHC_load ()
   local beam in MAD
   local is_sequence in MAD.typeid
 
   if not is_sequence(MADX:var_get'lhcb1') then        -- var_get avoids MADX warning
-    MADX:load('lhc_as-built.seq', 'lhc_as-built.mad') -- convert and save on need
-    MADX:load('opt_400_10000_400_3000.madx', 'opt_400_10000_400_3000.mad') -- ditto
-    MADX:load('lhc_unset_vars.mad') -- handmade, cleaner than disabling warnings...
+    MADX:load(refdir('lhc_as-built.seq'), rundir('lhc_as-built.mad')) -- convert and save on need
+    MADX:load(refdir('opt_400_10000_400_3000.madx'), rundir('opt_400_10000_400_3000.mad')) -- ditto
+    MADX:load(refdir('lhc_unset_vars.mad')) -- handmade, cleaner than disabling warnings...
 
     local lhcb1, lhcb2, nrj in MADX
 
@@ -48,19 +36,10 @@ local function LHC_twiss (X0, chrom, filename)
   local twiss, match in MAD
   local lhcb1 in MADX
 
-  local mt, mf = twiss { sequence=lhcb1, method=4, X0=X0, chrom=chrom,
-                         save=doplot and 'atbody' or nil,
-                         implicit=doplot, nslice=doplot and 5 or 1}
+  local mt, mf = twiss { sequence=lhcb1, method=4, X0=X0, chrom=chrom }
 
   mt:write(filename)
 
-  plottw(mt,{'mu1','mu2'})
-  plottw(mt,{'dmu1','dmu2'})
-  plottw(mt,{'dx','dy'})
-  plottw(mt,{'ddx','ddy'})
-  plottw(mt,{'ddpx','ddpy'})
-  plottw(mt,{'wx','wy'})
-  plottw(mt,{'phix','phiy'})
   return mt, mf
 end
 
@@ -69,11 +48,11 @@ local function LHC_match (X0, chrom, mth)
   local lhcb1 in MADX
 
   -- match tunes
-
+  --[[ 
   print("values before matching tunes:")
   print("MADX.kqtf_b1=", MADX.kqtf_b1)
   print("MADX.kqtd_b1=", MADX.kqtd_b1)
-
+  ]]
   local status, fmin, ncall = match {
     command := twiss { sequence=lhcb1, method=4, X0=X0, chrom=false, observe=1 },
     variables = { rtol=1e-6, -- 1 ppm
@@ -87,22 +66,22 @@ local function LHC_match (X0, chrom, mth)
     objective = {
       fmin=1e-10, broyden=true,
     },
-    maxcall=100, info=2, !debug=2
+    maxcall=100, !info=2, !debug=2
   }
-
+  --[[ 
   print("status=", status, "fmin=", fmin, "ncall=", ncall) -- ncall == 14
   print("values after matching tunes:")
   print("MADX.kqtf_b1=", MADX.kqtf_b1)
   print("MADX.kqtd_b1=", MADX.kqtd_b1)
-
+  ]]
   if not chrom then return end
 
   -- match chromaticities
-
+  --[[ 
   print("values before matching chromas:")
   print("MADX.ksf_b1=" , MADX.ksf_b1 )
   print("MADX.ksd_b1=" , MADX.ksd_b1 )
-
+   ]]
   local status, fmin, ncall = match {
     command := twiss { sequence=lhcb1, method=4, X0=X0, chrom=true, observe=1 },
     variables = { rtol=1e-6, -- 1 ppm
@@ -116,13 +95,14 @@ local function LHC_match (X0, chrom, mth)
     objective = {
       method=mth, fmin=1e-8, broyden=true,
     },
-    maxcall=100, info=2, !debug=2
+    maxcall=100, !info=2, !debug=2
   }
-
+  --[[ 
   print("status=", status, "fmin=", fmin, "ncall=", ncall) -- ncall == 21
   print("values after matching chroma:")
   print("MADX.ksf_b1=" , MADX.ksf_b1 )
   print("MADX.ksd_b1=" , MADX.ksd_b1 )
+  ]]
 end
 
 --------------------------------------------------------------------------------
@@ -130,6 +110,6 @@ end
 --------------------------------------------------------------------------------
 
 LHC_load()
-local mt, mf = LHC_twiss(0,true,'lhcb1_twiss_n.tfs')
+local mt, mf = LHC_twiss(0,true, rundir('lhcb1_twiss_n.tfs'))
 local X0 = mf[1]:get0() -- retrieve closed orbit
 LHC_match(X0,true)
