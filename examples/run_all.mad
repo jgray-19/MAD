@@ -1,5 +1,21 @@
 --./mad run_all.mad > out.txt 2> err.txt
+--./mad run_all.mad &> out.txt 
 local lfs = MAD.filesys
+local is_matrix in MAD.typeid
+local mtable in MAD
+
+local modules = {
+    'luaunitext', 'luacore', 'luagmath',
+}
+local assertAlmostEquals in MAD.utest
+
+-- allow global access
+MAD.strict(false)
+for _,v in ipairs(modules) do
+    modules[v] = require(v)
+end
+-- check for unexpected global access
+MAD.strict()
 
 local function err_fun (filename, msg)
     io.stderr:write("Error in " .. filename .. ": " .. msg .. "\n")
@@ -17,10 +33,17 @@ local slow = {
     ["ex-fcc_ee-chroma"] = true,
 }
 
+local todo = {
+    ["ex-fodo-madx"] = true,
+    ["ex-fodo"] = true,
+    -- ["ex-ps-twiss"] = true,
+}
+
 for folder in lfs.dir(".") do 
     if string.sub(folder, 1, 2) == "ex" then
         lfs.chdir(folder)
-        if not (not_working[folder] or slow[folder]) then
+        -- if not (not_working[folder] or slow[folder]) then
+        if todo[folder] then
             for file in lfs.dir(".") do 
                 if string.sub(file, 1, 2) == "ex" and string.sub(file, -4) == ".mad" then 
                     io.write("Running " .. file .. " \n")
@@ -35,6 +58,26 @@ for folder in lfs.dir(".") do
                     end
                 end
             end    
+            local info, ref_files = assert(loadfile('config.mad'))()
+            for res_file in lfs.dir("ex_run/") do 
+                if ref_files[res_file] then 
+                    local res = mtable "res" {}:read("ex_run/" .. res_file)
+                    io.write("Checking " .. res_file .. " \n")
+                    for i, ref_file in ipairs(ref_files[res_file]) do
+                        local ref = mtable "ref" {}:read("ex_ref/" .. ref_file)
+                        local cols = info[res_file]
+                        for k,v in pairs(cols) do
+                            local ref_vals = ref[cols[k][i] or k]
+                            local res_vals = res[k]
+                            if is_matrix(res_vals) or is_matrix(ref_vals) then
+                                assertAlmostEquals(res_vals:totable(), ref_vals:totable(), cols[k].eps)
+                            else
+                                assertAlmostEquals(res_vals, ref_vals, cols[k].eps)
+                            end
+                        end
+                    end
+                end
+            end
         end
         lfs.chdir("..")
     end

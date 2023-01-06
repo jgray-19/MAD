@@ -1,0 +1,41 @@
+local eps in MAD.constant
+local survey_list = {
+    s      = {eps = eps, "S"    },
+    l      = {eps = eps, "L"    },
+    angle  = {eps = eps, "ANGLE"},
+    x      = {eps = eps, "X"    },
+    y      = {eps = eps, "Y"    },
+    z      = {eps = eps, "Z"    },
+    theta  = {eps = eps, "THETA"},
+}
+local twiss_list = {
+    s      = {eps = eps, "S"    , "S"    },
+    x      = {eps = eps, "X"    , "X"    },
+    px     = {eps = eps, "PX"   , "PX"   },
+    beta11 = {eps = eps, "BETX" , "BETX" },
+    alfa11 = {eps = eps, "ALFX" , "ALFX" },
+    beta22 = {eps = eps, "BETY" , "BETY" },
+    alfa22 = {eps = eps, "ALFY" , "ALFY" },
+    dx     = {eps = eps, "DX"   , "DISP1"},
+    dpx    = {eps = eps, "DPX"  , "DISP2"},
+    mu1    = {eps = eps, "MUX"  , "MUX"  },
+    mu2    = {eps = eps, "MUY"  , "MUY"  },
+    l      = {eps = eps, "L"    , "L"    },
+    angle  = {eps = eps, "ANGLE", "ANGLE"},
+    k1l    = {eps = eps, "K1L"  , "K1L"  },
+    k2l    = {eps = eps, "K2L"  , "K2L"  },
+    k3l    = {eps = eps, "K3L"  , "K3L"  },
+    hkick  = {eps = eps, "HKICK", "HKICK"},
+    vkick  = {eps = eps, "VKICK", "VKICK"},
+}
+
+local info = {
+    ["PS_survey_n.tfs"] = survey_list,
+    ["PS_twiss_n.tfs"]  = twiss_list,
+}
+
+local ref_files = {
+    ["PS_survey_n.tfs"] = {"PS_survey_x.ref", "PS_survey_n.ref"},
+    ["PS_twiss_n.tfs"]  = {"PS_twiss_x.ref" , "PS_twiss_p.ref",  "PS_twiss_n.ref"},
+}
+return info, ref_files
