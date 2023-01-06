@@ -1,0 +1,53 @@
+--./mad run_all.mad > out.txt 2> err.txt
+local lfs = MAD.filesys
+
+local function err_fun (filename, msg)
+    io.stderr:write("Error in " .. filename .. ": " .. msg .. "\n")
+    io.stderr:write(debug.traceback())
+end
+
+local not_working = {
+    ["ex-linac4"] = true, 
+    ["ex-hllhc-build"] = true,
+    ["ex-lhc-rdt-ip"] = true,
+}
+
+local slow = {
+    ["ex-fcc_ee"] = true,
+    ["ex-fcc_ee-chroma"] = true,
+}
+
+for folder in lfs.dir(".") do 
+    if string.sub(folder, 1, 2) == "ex" then
+        lfs.chdir(folder)
+        if not (not_working[folder] or slow[folder]) then
+            for file in lfs.dir(".") do 
+                if string.sub(file, 1, 2) == "ex" and string.sub(file, -4) == ".mad" then 
+                    io.write("Running " .. file .. " \n")
+                    local errfun = \msg -> err_fun(file, msg)
+                    local env = {}                               -- Allows for access to environment
+                    setmetatable(env, {__index = _G})
+                    local fun, err = loadfile(file, "t", env)    -- Catch load error
+                    if fun then fun, err = xpcall(fun, errfun)   -- Catch run  error
+                        else err = errfun(err) 
+                    end
+                    if err then io.stderr:write("Error in " .. file .. ": " .. err .. "\n")
+                    end
+                end
+            end    
+        end
+        lfs.chdir("..")
+    end
+end
+
+--[[ This won't work as the linac 4 sequence has an sbend with angle 0 (MAD-NG prevents this)
+local linac4_env = {dir = "ex-linac4/"}
+setmetatable(linac4_env, {__index = _G})
+assert(loadfile("ex-linac4/ex-linac4.mad", "t", linac4_env))()
+]]--
+
+--[[ Gets error madl_sequence.mad:102: invalid element position at s = 127.652m [127.652m] (negative drift -3.492m) in sequence 'LHCB1' for element 'VTAXNA.4R1.B1' at index 39
+local hllhc_lattice_env = {dir = "ex-hllhc-build/"}
+setmetatable(hllhc_lattice_env, {__index = _G})
+assert(loadfile("ex-hllhc-build/ex-hllhc-build.mad", "t", hllhc_lattice_env))()
+]]
