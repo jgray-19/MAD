@@ -40,7 +40,7 @@ MADX:close_env()
 local t0 = os.clock()
 
 -- print("Computing/saving twiss before tune correction.")
-local tbl = twiss { sequence=lhcb1, method=4, chrom=true }
+local tbl = twiss { sequence=lhcb1, method=4 }
 tbl:write(rundir("before_tune_correction_n"))
 
 
@@ -79,13 +79,13 @@ ENDMATCH;
 --MADX.dqy_b1 = 3.31034e-03
 
 -- print("Computing/saving twiss after tune correction.")
-local tbl = twiss { sequence=lhcb1, method=4, chrom=true }
+local tbl = twiss { sequence=lhcb1, method=4 }
 tbl:write(rundir("after_tune_correction_n"))
 
 local t1 = os.clock()
 -- print("pre-tracking time: "..(t1-t0)..'s')
 
-os.exit()
+do return end 
 !#############################################################################
 !######## Track                                                       ########
 !#############################################################################
