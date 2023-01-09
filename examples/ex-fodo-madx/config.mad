@@ -1,16 +1,15 @@
 local eps in MAD.constant
 
 local twiss_list = {
-    beta11 = eps,
-    beta22 = eps,
+    beta11 = 5*eps,
+    beta22 = 2*eps,
     mu1    = eps,
     mu2    = eps,
-    alfa11 = eps,
-    alfa22 = eps,
+    alfa11 = 2*eps,
+    alfa22 = 5*eps,
 }
 local margins = {
-    ["twiss_n_m.tfs"] = twiss_list,
-    ["twiss_n_x.tfs"] = twiss_list,
+    ["twiss_x.ref"] = twiss_list,
 }
 local ref_files = {
     ["twiss_n_m.tfs"] = {"twiss_x.ref"},

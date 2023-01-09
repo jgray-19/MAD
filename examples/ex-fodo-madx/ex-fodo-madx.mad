@@ -8,7 +8,7 @@ local sfx
 local refdir = \s -> 'ex_ref/'..(s or '')
 local rundir = \s -> 'ex_run/'..(s or '')
 MAD.filesys.mkdir(rundir())
-
+MAD.option.numfmt = "% -.16e"
 
 local sequence, multipole in MAD.element
 local deferred in MAD.typeid
@@ -19,7 +19,7 @@ local cols = {'name', 's', 'beta11', 'beta22', 'mu1', 'mu2', 'alfa11', 'alfa22'}
 local function do_twiss() 
   seq.beam = beam -- use default beam
   local mtbl = twiss {sequence=seq, method=4}--, chrom=true, nslice=10, implicit=true, save='atbody'}
-  mtbl:write(rundir("twiss_n_"..sfx..".tfs", cols))
+  mtbl:write(rundir("twiss_n_"..sfx..".tfs"), cols)
 end
 
 --MAD-NG Creating the sequence version

@@ -1,6 +1,6 @@
-call, file="fodo.seq";
-
+call, file="ex_ref/fodo.seq";
+set, format=".16e";
 beam;
 use, sequence=seq;
 select, flag=twiss, column={name, s, betx, bety, mux, muy, alfx, alfy};
-twiss, file="twiss_x.tsf";
+twiss, file="ex_ref/twiss_x.ref";
