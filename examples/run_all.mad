@@ -1,21 +1,12 @@
 --./mad run_all.mad > out.txt 2> err.txt
 --./mad run_all.mad &> out.txt 
+
+-- Import modules
 local lfs = MAD.filesys
 local is_matrix in MAD.typeid
 local mtable in MAD
-
-local modules = {
-    'luaunitext', 'luacore', 'luagmath',
-}
 local assertAlmostEquals in MAD.utest
-
--- allow global access
-MAD.strict(false)
-for _,v in ipairs(modules) do
-    modules[v] = require(v)
-end
--- check for unexpected global access
-MAD.strict()
+local assertAllAlmostEquals in MAD.utest
 
 local function err_fun (filename, msg)
     io.stderr:write("Error in " .. filename .. ": " .. msg .. "\n")
@@ -36,53 +27,78 @@ local slow = {
 local todo = {
     ["ex-fodo-madx"] = true,
     ["ex-fodo"] = true,
-    -- ["ex-ps-twiss"] = true,
+    ["ex-ps-twiss"] = true,
+    -- ["ex-lhc-couplingLocal"] = true,
 }
 
+local col_names = { -- A list of column names to translate from MAD-NG to MAD-X or PTC
+        beta11 = {x = "BETX" , p = "BETX" }, --Only gets translated if beta11 does not exist in the twiss table (No coupling present)
+        alfa11 = {x = "ALFX" , p = "ALFX" },
+        beta22 = {x = "BETY" , p = "BETY" },
+        alfa22 = {x = "ALFY" , p = "ALFY" },
+        dx     = {             p = "DISP1"},
+        dpx    = {             p = "DISP2"},
+        mu1    = {x = "MUX"  , p = "MUX"  },
+        mu2    = {x = "MUY"  , p = "MUY"  },
+}
+local function create_args(mtbl_len)
+    return 1..mtbl_len, \row, i => if string.lower(row[2]) == "marker" and not (i == 1 or i == mtbl_len) then return true end end
+end
+
+
 for folder in lfs.dir(".") do 
-    if string.sub(folder, 1, 2) == "ex" then
-        lfs.chdir(folder)
-        -- if not (not_working[folder] or slow[folder]) then
-        if todo[folder] then
-            for file in lfs.dir(".") do 
-                if string.sub(file, 1, 2) == "ex" and string.sub(file, -4) == ".mad" then 
-                    io.write("Running " .. file .. " \n")
+    if string.sub(folder, 1, 2) == "ex" then                                                -- Only run examples    
+        lfs.chdir(folder)                                                                   -- Change to example folder
+        -- if not (not_working[folder] or slow[folder]) then                                -- Only run examples that are not marked as not working or slow
+        if todo[folder] then                                                                -- Only run examples that are marked as todo
+            for file in lfs.dir(".") do                                                     -- Loop through every file in the example folder
+                if string.sub(file, 1, 2) == "ex" and string.sub(file, -4) == ".mad" then   -- Only run files that start with ex and end with .mad
+                    io.write("Running " .. file .. " \n\n")
                     local errfun = \msg -> err_fun(file, msg)
-                    local env = {}                               -- Allows for access to environment
+                    local env = {}                                                          -- Allows for access to environment
                     setmetatable(env, {__index = _G})
-                    local fun, err = loadfile(file, "t", env)    -- Catch load error
-                    if fun then fun, err = xpcall(fun, errfun)   -- Catch run  error
-                        else err = errfun(err) 
+                    local fun, err = loadfile(file, "t", env)                               -- Load file
+                    if fun then fun, err = xpcall(fun, errfun)                              -- Run file
+                    else err = errfun(err) 
                     end
                     if err then io.stderr:write("Error in " .. file .. ": " .. err .. "\n")
                     end
                 end
-            end    
-            local info, ref_files = assert(loadfile('config.mad'))()
-            for res_file in lfs.dir("ex_run/") do 
-                if ref_files[res_file] then 
-                    local res = mtable "res" {}:read("ex_run/" .. res_file)
-                    io.write("Checking " .. res_file .. " \n")
-                    for i, ref_file in ipairs(ref_files[res_file]) do
-                        local ref = mtable "ref" {}:read("ex_ref/" .. ref_file)
-                        local cols = info[res_file]
-                        for k,v in pairs(cols) do
-                            local ref_vals = ref[cols[k][i] or k]
-                            local res_vals = res[k]
-                            if is_matrix(res_vals) or is_matrix(ref_vals) then
-                                assertAlmostEquals(res_vals:totable(), ref_vals:totable(), cols[k].eps)
-                            else
-                                assertAlmostEquals(res_vals, ref_vals, cols[k].eps)
-                            end
+            end
+            local margins, ref_tbl = assert(loadfile('config.mad'))()               -- Load the config file for this example
+            for res_file, ref_files in pairs(ref_tbl) do                            -- Get every result file
+                local res = mtable "res" {}:read("ex_run/" .. res_file)             -- Create mtable from result file
+                io.write("Checking " .. res_file .. "\t")   
+                for i, ref_file in ipairs(ref_files) do                             -- Loop through every reference file listed in config.mad
+                    io.write("against " .. ref_file .. " \t")   
+                    local ref = mtable "ref" {}:read("ex_ref/" .. ref_file)         -- Create mtable from reference file
+                    local mrg_lst = margins[res_file]                               -- Get the error list for the result file
+                    if #res ~= #ref then                                            -- If the number of rows is different, remove markers (for ps)
+                        res:remove(create_args(#res))                               
+                        ref:remove(create_args(#ref))                               
+                        io.write("w/ filtered markers \t")
+                    end
+                    for k, margin in pairs(mrg_lst) do                                       -- Get every column that needs comparing
+                        local ref_vals = ref[k] or                                           -- Try MAD-NG column          
+                                         ref[string.upper(k)] or                             -- Try upper-case MAD-NG
+                                         ref[col_names[k][string.sub(ref_file, -5, -5)]]     -- Get translation from MAD-NG to MAD-X or PTC
+                        local res_vals = res[k]                                              -- Get the result values                     
+                        if is_matrix(res_vals) or is_matrix(ref_vals) then                   -- If the values are matrices convert them to tables
+                            res_vals, ref_vals = res_vals:totable(), ref_vals:totable()
                         end
+                        -- assertAlmostEquals(res_vals, ref_vals, margin)                       -- Compare the values
+                        assertAllAlmostEquals(res_vals, ref_vals, margin)                       -- Compare the values
+                        -- assertAlmostEquals(res_vals, ref_vals, margin[i])                   -- Compare the values (if different margins are needed for different reference files)
                     end
                 end
+                io.write("\n")
             end
         end
         lfs.chdir("..")
     end
 end
 
+-- List of examples that are not working
 --[[ This won't work as the linac 4 sequence has an sbend with angle 0 (MAD-NG prevents this)
 local linac4_env = {dir = "ex-linac4/"}
 setmetatable(linac4_env, {__index = _G})
