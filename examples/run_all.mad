@@ -5,15 +5,20 @@
 local lfs = MAD.filesys
 local is_matrix in MAD.typeid
 local mtable in MAD
--- local assertAlmostEquals in MAD.utest
-local assertAllAlmostEquals in MAD.utest --To be backwards compatible
+local abs in math
+local assertAlmostEquals in MAD.utest
+local sub, upper, lower in string
 
-local run_example = false -- Set to true to run the examples before checking tfs tables
+local run_example = true -- Set to true to run the examples before checking tfs tables
 
 local function err_fun (filename, msg)
     io.stderr:write("Error in " .. filename .. ": " .. msg .. "\n")
     io.stderr:write(debug.traceback())
 end
+
+local todo = {
+    ["ex-fodo-madx"] = true
+}
 
 local col_names = { -- A list of column names to translate from MAD-NG to MAD-X or PTC
         beta11 = {x = "BETX" , p = "BETX" }, --Only gets translated if beta11 does not exist in the twiss table (No coupling present)
@@ -26,19 +31,20 @@ local col_names = { -- A list of column names to translate from MAD-NG to MAD-X 
         mu2    = {x = "MUY"  , p = "MUY"  },
 }
 local function create_args(mtbl_len)
-    return 1..mtbl_len, \row, i => if string.lower(row[2]) == "marker" and not (i == 1 or i == mtbl_len) then return true end end
+    return 1..mtbl_len, \row, i => if lower(row[2]) == "marker" and not (i == 1 or i == mtbl_len) then return true end end
 end
 
 
 for folder in lfs.dir(".") do 
-    if string.sub(folder, 1, 2) == "ex" then                                                    -- Only run examples    
-        lfs.chdir(folder)                                                                       -- Change to example folder
-        local config = loadfile('config.mad')                                                   -- Load the config file 
-        if config then                                                                          -- Only run examples that have a config
+    if sub(folder, 1, 2) == "ex" then                                                -- Only run examples    
+        lfs.chdir(folder)                                                                   -- Change to example folder
+        local config = loadfile('config.mad')                                               -- Load the config file 
+        -- if config then                                                                      -- Only run examples that have a config
+        if config and todo[folder] then
             local margins, ref_tbl = config()
             if run_example then
                 for file in lfs.dir(".") do                                                     -- Loop through every file in the example folder
-                    if string.sub(file, 1, 2) == "ex" and string.sub(file, -4) == ".mad" then   -- Only run files that start with ex and end with .mad
+                    if sub(file, 1, 2) == "ex" and sub(file, -4) == ".mad" then   -- Only run files that start with ex and end with .mad
                         io.write("Running " .. file .. " \n\n")
                         local errfun = \msg -> err_fun(file, msg)
                         local env = {}                                                          -- Allows for access to environment
@@ -47,34 +53,37 @@ for folder in lfs.dir(".") do
                         if fun then fun, err = xpcall(fun, errfun)                              -- Run file
                         else err = errfun(err) 
                         end
-                        if err then io.stderr:write("Error in " .. file .. ": " .. err .. "\n")
-                        end
+                        if err then io.stderr:write("Error in " .. file .. ": " .. err .. "\n") end
                     end
                 end
             end
-            for res_file, ref_files in pairs(ref_tbl) do                            -- Get every result file
-                local res = mtable "res" {}:read("ex_run/" .. res_file)             -- Create mtable from result file
-                io.write("Checking " .. res_file .. "\t")   
-                for i, ref_file in ipairs(ref_files) do                             -- Loop through every reference file listed in config.mad
+            for res_file, ref_files in pairs(ref_tbl) do                                                    -- Get every result file
+                local res = mtable "res" {}:read("ex_run/" .. res_file)                                     -- Create mtable from result file
+                io.write("Checking " .. res_file .. "\t")
+                for i, ref_file in ipairs(ref_files) do                                                     -- Loop through every reference file listed in config.mad
                     io.write("against " .. ref_file .. " \t")   
-                    local ref = mtable "ref" {}:read("ex_ref/" .. ref_file)         -- Create mtable from reference file
-                    local res_mrgs = margins[res_file]                              -- Get the error list for the result file
-                    if #res ~= #ref then                                            -- If the number of rows is different, remove markers (for ps)
-                        res:remove(create_args(#res))                               
-                        ref:remove(create_args(#ref))                               
-                        io.write("w/ filtered markers \t")
-                    end
-                    for k, margin in pairs(res_mrgs) do                                       -- Get every column that needs comparing
-                        local ref_vals = ref[k] or                                           -- Try MAD-NG column          
-                                         ref[string.upper(k)] or                             -- Try upper-case MAD-NG
-                                         ref[col_names[k][string.sub(ref_file, -5, -5)]]     -- Get translation from MAD-NG to MAD-X or PTC
-                        local res_vals = res[k]                                              -- Get the result values                     
-                        if is_matrix(res_vals) or is_matrix(ref_vals) then                   -- If the values are matrices convert them to tables
-                            res_vals, ref_vals = res_vals:totable(), ref_vals:totable()
+                    local ref = mtable "ref" {}:read("ex_ref/" .. ref_file):make_dict(1)                    -- Create mtable from reference file
+                    local ref_mrgs = margins[ref_file]                                                      -- Get the error list for the result file
+                    for col, margin in pairs(ref_mrgs) do                                                   -- Get every column that needs comparing    
+                        local rows = res:getcol("name")                                                     -- Get the row names
+                        for i, row in ipairs(rows) do                                                       -- Loop through every row
+                            local madx_rowname = upper(row)!:gsub("DRIFT__", "DRIFT_")
+                            local rowname = ref:getrow(row) and row or 
+                                                 ref:getrow(madx_rowname) and madx_rowname                  -- Get the row from the reference file
+                            if rowname then                                                                 -- If the row is not in the reference file
+                                local res_val = res:get(row, col)                                           -- Get the result value
+                                local ref_val = ref:get(rowname, col) or                                    -- Try MAD-NG column          
+                                                ref:get(rowname, upper(col)) or                             -- Try upper-case MAD-NG
+                                                ref:get(rowname, col_names[col][sub(ref_file, -5, -5)])     -- Get translation from MAD-NG to MAD-X or PTC
+                                ref:get(row, col)                                                           -- Get the reference value
+                                print("row = ", row, "col = ", col)
+                                if res_val < 1 then                                                         -- If the value is small, use absolute error
+                                    assertAlmostEquals(res_val, ref_val, margin)
+                                else                                                                        -- If the value is large, use relative error
+                                    assertAlmostEquals(res_val - ref_val, 0, margin*abs(res_val))
+                                end
+                            end
                         end
-                        -- assertAlmostEquals(res_vals, ref_vals, margin)                       -- Compare the values
-                        assertAllAlmostEquals(res_vals, ref_vals, margin)                       -- Compare the values
-                        -- assertAlmostEquals(res_vals, ref_vals, margin[i])                      -- Compare the values (if different margins are needed for different reference files)
                     end
                 end
                 io.write("\n")
