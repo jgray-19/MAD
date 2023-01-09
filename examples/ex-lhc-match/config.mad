@@ -1,0 +1,25 @@
+local eps = MAD.constant.eps
+local margins = {
+    ["lhcb1_twiss_n.tfs"] = {
+        s      = 0,
+        x      = 1e-8,
+        px     = 1e-9,
+        y      = 1e-12,
+        py     = 1e-14,
+        t      = 1e-11,
+        pt     = 1e-12,
+        alfa11 = 1e-6,
+        beta11 = 1e-5,
+        gama11 = 1e-8,
+        alfa22 = 1e-6,
+        beta22 = 1e-5,
+        gama22 = 1e-7,
+        mu1    = 1e-7,
+        dmu1   = 1e-3,
+    }
+}
+
+local ref_files = {
+    ["lhcb1_twiss_n.tfs"]  = {"lhcb1_twiss_n.ref", --[[ "twiss_x.ref" ]]},
+}
+return margins, ref_files

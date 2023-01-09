@@ -29,7 +29,7 @@ local twiss_list = {
     vkick  = eps,
 }
 
-local info = {
+local margins = {
     ["PS_survey_n.tfs"] = survey_list,
     ["PS_twiss_n.tfs"]  = twiss_list,
 }
@@ -38,4 +38,4 @@ local ref_files = {
     ["PS_survey_n.tfs"] = {"PS_survey_x.ref",  "PS_survey_n.ref"},
     ["PS_twiss_n.tfs"]  = { "PS_twiss_n.ref", --[[ "PS_twiss_x.ref" , ]] "PS_twiss_p.ref"},
 }
-return info, ref_files
+return margins, ref_files

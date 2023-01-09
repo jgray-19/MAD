@@ -1,6 +1,6 @@
 local eps in MAD.constant
 
-local info = {
+local margins = {
     ["before_tune_correction_n.tfs" ] = {
         s = 0,
         beta11 = 1e-5,
@@ -35,4 +35,4 @@ local ref_files = {
     ["after_tune_correction_n.tfs"]  = {"after_tune_correction_n.ref" , --[[ "after_tune_correction_x.ref"  ]]},
     ["track900_n.tfs"]  = {"track900_n.ref"},
 }
-return info, ref_files
+return margins, ref_files
