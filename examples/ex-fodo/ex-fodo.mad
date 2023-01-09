@@ -33,8 +33,8 @@ local function mk_seq ()
   -- prepare beam depending on the user's charge sign...
   local sb = beam { particle = charge<0 and 'electron' or nil, energy=2 }
 
-  printf("particle: '%s', charge = %d, energy = %g, mass = %.8e\n",
-             sb.particle,   sb.charge,   sb.energy,     sb.mass)
+  -- printf("particle: '%s', charge = %d, energy = %g, mass = %.8e\n",
+  --            sb.particle,   sb.charge,   sb.energy,     sb.mass)
 
   -- parametric fodo cell (for fun, could use deferred expressions)
   local cell = \ang, chg -> sequence 'cell' {
@@ -98,35 +98,35 @@ local tw_col = {'name', 's', 'x', 'px', 'y', 'py', 't', 'pt',
                 'dx', 'dpx', 'dy', 'dpy'}
 
 !-- sanity check
-printf("deltap to pt= %.16g\n", dp2pt(deltap, seq.beam.beta))
+-- printf("deltap to pt= %.16g\n", dp2pt(deltap, seq.beam.beta))
 
 -- check geometry
-print("survey...")
+-- print("survey...")
 local srv = survey { sequence=seq } :write(rundir('survey_n'))
 
 -- track (no closed orbit)
-print("track...")
+-- print("track...")
 local trk, mfl = track { sequence=seq,
   X0=X0, deltap=deltap, method=4, observe=0, info=2, !debug=7
 }
 trk:write(rundir('track_n'), tk_col)
 
 -- cofind --------------
-print("cofind...")
+-- print("cofind...")
 local trk, mfl = cofind { sequence=seq,
   X0=X0, deltap=deltap, method=4, observe=0, save=true, info=2, !debug=7
 }
 trk:write(rundir('cofind_n'), tk_col)
 
 -- twiss (no closed orbit)
-print("twiss-noco...")
+-- print("twiss-noco...")
 local tws, mfl = twiss { sequence=seq,
   X0=beta0(X0), deltap=deltap, method=4, info=2, !debug=7
 }
 tws:write(rundir('twiss0_n'), tw_col)
 
 -- twiss (with closed orbit)
-print("twiss-co...")
+-- print("twiss-co...")
 local tws, mfl = twiss { sequence=seq,
   X0=X0, deltap=deltap, method=4, mapdef=5, info=2, !debug=7, !chrom=true
 }
