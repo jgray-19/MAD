@@ -5,31 +5,15 @@
 local lfs = MAD.filesys
 local is_matrix in MAD.typeid
 local mtable in MAD
-local assertAlmostEquals in MAD.utest
-local assertAllAlmostEquals in MAD.utest
+-- local assertAlmostEquals in MAD.utest
+local assertAllAlmostEquals in MAD.utest --To be backwards compatible
+
+local run_example = false -- Set to true to run the examples before checking tfs tables
 
 local function err_fun (filename, msg)
     io.stderr:write("Error in " .. filename .. ": " .. msg .. "\n")
     io.stderr:write(debug.traceback())
 end
-
-local not_working = {
-    ["ex-linac4"] = true, 
-    ["ex-hllhc-build"] = true,
-    ["ex-lhc-rdt-ip"] = true,
-}
-
-local slow = {
-    ["ex-fcc_ee"] = true,
-    ["ex-fcc_ee-chroma"] = true,
-}
-
-local todo = {
-    ["ex-fodo-madx"] = true,
-    ["ex-fodo"] = true,
-    ["ex-ps-twiss"] = true,
-    -- ["ex-lhc-couplingLocal"] = true,
-}
 
 local col_names = { -- A list of column names to translate from MAD-NG to MAD-X or PTC
         beta11 = {x = "BETX" , p = "BETX" }, --Only gets translated if beta11 does not exist in the twiss table (No coupling present)
@@ -47,38 +31,40 @@ end
 
 
 for folder in lfs.dir(".") do 
-    if string.sub(folder, 1, 2) == "ex" then                                                -- Only run examples    
-        lfs.chdir(folder)                                                                   -- Change to example folder
-        -- if not (not_working[folder] or slow[folder]) then                                -- Only run examples that are not marked as not working or slow
-        if todo[folder] then                                                                -- Only run examples that are marked as todo
-            for file in lfs.dir(".") do                                                     -- Loop through every file in the example folder
-                if string.sub(file, 1, 2) == "ex" and string.sub(file, -4) == ".mad" then   -- Only run files that start with ex and end with .mad
-                    io.write("Running " .. file .. " \n\n")
-                    local errfun = \msg -> err_fun(file, msg)
-                    local env = {}                                                          -- Allows for access to environment
-                    setmetatable(env, {__index = _G})
-                    local fun, err = loadfile(file, "t", env)                               -- Load file
-                    if fun then fun, err = xpcall(fun, errfun)                              -- Run file
-                    else err = errfun(err) 
-                    end
-                    if err then io.stderr:write("Error in " .. file .. ": " .. err .. "\n")
+    if string.sub(folder, 1, 2) == "ex" then                                                    -- Only run examples    
+        lfs.chdir(folder)                                                                       -- Change to example folder
+        local config = loadfile('config.mad')                                                   -- Load the config file 
+        if config then                                                                          -- Only run examples that have a config
+            local margins, ref_tbl = config()
+            if run_example then
+                for file in lfs.dir(".") do                                                     -- Loop through every file in the example folder
+                    if string.sub(file, 1, 2) == "ex" and string.sub(file, -4) == ".mad" then   -- Only run files that start with ex and end with .mad
+                        io.write("Running " .. file .. " \n\n")
+                        local errfun = \msg -> err_fun(file, msg)
+                        local env = {}                                                          -- Allows for access to environment
+                        setmetatable(env, {__index = _G})
+                        local fun, err = loadfile(file, "t", env)                               -- Load file
+                        if fun then fun, err = xpcall(fun, errfun)                              -- Run file
+                        else err = errfun(err) 
+                        end
+                        if err then io.stderr:write("Error in " .. file .. ": " .. err .. "\n")
+                        end
                     end
                 end
             end
-            local margins, ref_tbl = assert(loadfile('config.mad'))()               -- Load the config file for this example
             for res_file, ref_files in pairs(ref_tbl) do                            -- Get every result file
                 local res = mtable "res" {}:read("ex_run/" .. res_file)             -- Create mtable from result file
                 io.write("Checking " .. res_file .. "\t")   
                 for i, ref_file in ipairs(ref_files) do                             -- Loop through every reference file listed in config.mad
                     io.write("against " .. ref_file .. " \t")   
                     local ref = mtable "ref" {}:read("ex_ref/" .. ref_file)         -- Create mtable from reference file
-                    local mrg_lst = margins[res_file]                               -- Get the error list for the result file
+                    local res_mrgs = margins[res_file]                              -- Get the error list for the result file
                     if #res ~= #ref then                                            -- If the number of rows is different, remove markers (for ps)
                         res:remove(create_args(#res))                               
                         ref:remove(create_args(#ref))                               
                         io.write("w/ filtered markers \t")
                     end
-                    for k, margin in pairs(mrg_lst) do                                       -- Get every column that needs comparing
+                    for k, margin in pairs(res_mrgs) do                                       -- Get every column that needs comparing
                         local ref_vals = ref[k] or                                           -- Try MAD-NG column          
                                          ref[string.upper(k)] or                             -- Try upper-case MAD-NG
                                          ref[col_names[k][string.sub(ref_file, -5, -5)]]     -- Get translation from MAD-NG to MAD-X or PTC
@@ -88,7 +74,7 @@ for folder in lfs.dir(".") do
                         end
                         -- assertAlmostEquals(res_vals, ref_vals, margin)                       -- Compare the values
                         assertAllAlmostEquals(res_vals, ref_vals, margin)                       -- Compare the values
-                        -- assertAlmostEquals(res_vals, ref_vals, margin[i])                   -- Compare the values (if different margins are needed for different reference files)
+                        -- assertAlmostEquals(res_vals, ref_vals, margin[i])                      -- Compare the values (if different margins are needed for different reference files)
                     end
                 end
                 io.write("\n")
