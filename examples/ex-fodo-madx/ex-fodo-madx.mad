@@ -18,7 +18,7 @@ local cols = {'name', 's', 'beta11', 'beta22', 'mu1', 'mu2', 'alfa11', 'alfa22'}
 
 local function do_twiss() 
   seq.beam = beam -- use default beam
-  local mtbl = twiss {sequence=seq, method=4, chrom=true, nslice=10, implicit=true, save='atbody'}
+  local mtbl = twiss {sequence=seq, method=4}--, chrom=true, nslice=10, implicit=true, save='atbody'}
   mtbl:write(rundir("twiss_n_"..sfx..".tfs", cols))
 end
 
