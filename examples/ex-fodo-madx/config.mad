@@ -1,12 +1,12 @@
 local eps in MAD.constant
 
 local twiss_list = {
-    beta11 = {eps = eps, "BETX"},
-    beta22 = {eps = eps, "BETY"},
-    mu1    = {eps = eps, "MUX" },
-    mu2    = {eps = eps, "MUY" },
-    alfa11 = {eps = eps, "ALFX"},
-    alfa22 = {eps = eps, "ALFY"},
+    beta11 = eps,
+    beta22 = eps,
+    mu1    = eps,
+    mu2    = eps,
+    alfa11 = eps,
+    alfa22 = eps,
 }
 local info = {
     ["twiss_n_m.tfs"] = twiss_list,

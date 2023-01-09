@@ -1,32 +1,32 @@
 local eps in MAD.constant
 local survey_list = {
-    s      = {eps = eps, "S"    },
-    l      = {eps = eps, "L"    },
-    angle  = {eps = eps, "ANGLE"},
-    x      = {eps = eps, "X"    },
-    y      = {eps = eps, "Y"    },
-    z      = {eps = eps, "Z"    },
-    theta  = {eps = eps, "THETA"},
+    s      = eps,
+    l      = eps,
+    angle  = eps,
+    x      = 2e-12, -- For MAD-X only 
+    y      = eps,
+    z      = 1e-12, -- For MAD-X only
+    theta  = eps,
 }
 local twiss_list = {
-    s      = {eps = eps, "S"    , "S"    },
-    x      = {eps = eps, "X"    , "X"    },
-    px     = {eps = eps, "PX"   , "PX"   },
-    beta11 = {eps = eps, "BETX" , "BETX" },
-    alfa11 = {eps = eps, "ALFX" , "ALFX" },
-    beta22 = {eps = eps, "BETY" , "BETY" },
-    alfa22 = {eps = eps, "ALFY" , "ALFY" },
-    dx     = {eps = eps, "DX"   , "DISP1"},
-    dpx    = {eps = eps, "DPX"  , "DISP2"},
-    mu1    = {eps = eps, "MUX"  , "MUX"  },
-    mu2    = {eps = eps, "MUY"  , "MUY"  },
-    l      = {eps = eps, "L"    , "L"    },
-    angle  = {eps = eps, "ANGLE", "ANGLE"},
-    k1l    = {eps = eps, "K1L"  , "K1L"  },
-    k2l    = {eps = eps, "K2L"  , "K2L"  },
-    k3l    = {eps = eps, "K3L"  , "K3L"  },
-    hkick  = {eps = eps, "HKICK", "HKICK"},
-    vkick  = {eps = eps, "VKICK", "VKICK"},
+    s      = 0,
+    x      = 1e-11,
+    px     = 1e-12,
+    beta11 = 1e-7,
+    alfa11 = 1e-8,
+    beta22 = 1e-8,
+    alfa22 = 1e-8,
+    dx     = 1e-8,
+    dpx    = 1e-9,
+    mu1    = 1e-10,
+    mu2    = eps,
+    l      = eps,
+    angle  = eps,
+    -- k1l    = eps, --Contains a nan
+    -- k2l    = eps, --Contains a nan
+    k3l    = eps,
+    -- hkick  = eps, --Contains a nan
+    vkick  = eps,
 }
 
 local info = {
@@ -35,7 +35,7 @@ local info = {
 }
 
 local ref_files = {
-    ["PS_survey_n.tfs"] = {"PS_survey_x.ref", "PS_survey_n.ref"},
-    ["PS_twiss_n.tfs"]  = {"PS_twiss_x.ref" , "PS_twiss_p.ref",  "PS_twiss_n.ref"},
+    ["PS_survey_n.tfs"] = {"PS_survey_x.ref",  "PS_survey_n.ref"},
+    ["PS_twiss_n.tfs"]  = { "PS_twiss_n.ref", --[[ "PS_twiss_x.ref" , ]] "PS_twiss_p.ref"},
 }
 return info, ref_files
