@@ -2,12 +2,12 @@
 
 ! Links definitions
 option, warn,info;
-set, format="22.16e";
+set, format=".16e";
 
 option, -echo,-warn,-info;
 
-call, file="lhc_as-built.seq";
-call, file="opt_400_10000_400_3000.madx";
+call, file="ex_ref/lhc_as-built.seq";
+call, file="ex_ref/opt_400_10000_400_3000.madx";
 
 option, warn;
 
@@ -15,9 +15,10 @@ beam, sequence=lhcb1, energy=nrj, particle=proton;
 use, sequence=lhcb1;
 
 select,flag=twiss,clear;
-select,flag=twiss, pattern=ip, column=s, name, betx, bety, alfx, alfy;
-twiss,chrom,table, file="lhcb1_twiss_x.tfs";
+select,flag=twiss, pattern=ip, column=s, name, x, px, y, py, t, pt, betx, bety, alfx, alfy, mux, dmux;
+twiss,chrom,table, file="ex_ref/lhcb1_twiss_x.ref";
 
+stop;
 !!!!!!!!!!!!!!!!!!!!
 print, text="STARTING TUNE MATCHING";
 system, "date";

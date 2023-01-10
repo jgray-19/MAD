@@ -5,6 +5,7 @@ local assertf in  MAD.utility
 local refdir = \s -> 'ex_ref/'..(s or '')
 local rundir = \s -> 'ex_run/'..(s or '')
 MAD.filesys.mkdir(rundir())
+MAD.option.numfmt = "% -.16e"
 
 local function LHC_load ()
   local beam in MAD
@@ -111,5 +112,5 @@ end
 
 LHC_load()
 local mt, mf = LHC_twiss(0,true, rundir('lhcb1_twiss_n.tfs'))
-local X0 = mf[1]:get0() -- retrieve closed orbit
-LHC_match(X0,true)
+-- local X0 = mf[1]:get0() -- retrieve closed orbit
+-- LHC_match(X0,true)
