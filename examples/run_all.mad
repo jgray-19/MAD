@@ -9,26 +9,22 @@ local abs in math
 local assertAlmostEquals in MAD.utest
 local sub, upper, lower in string
 
-local run_example = true -- Set to true to run the examples before checking tfs tables
+local run_example = false -- Set to true to run the examples before checking tfs tables
 
 local function err_fun (filename, msg)
     io.stderr:write("Error in " .. filename .. ": " .. msg .. "\n")
     io.stderr:write(debug.traceback())
 end
 
-local todo = {
-    ["ex-fodo-madx"] = true
-}
-
 local col_names = { -- A list of column names to translate from MAD-NG to MAD-X or PTC
         beta11 = {x = "BETX" , p = "BETX" }, --Only gets translated if beta11 does not exist in the twiss table (No coupling present)
         alfa11 = {x = "ALFX" , p = "ALFX" },
         beta22 = {x = "BETY" , p = "BETY" },
         alfa22 = {x = "ALFY" , p = "ALFY" },
-        dx     = {             p = "DISP1"},
-        dpx    = {             p = "DISP2"},
         mu1    = {x = "MUX"  , p = "MUX"  },
         mu2    = {x = "MUY"  , p = "MUY"  },
+        dmu1   = {x = "DMUX" , p = "DMUX" },
+        dmu2   = {x = "DMUY" , p = "DMUY" },
 }
 local function create_args(mtbl_len)
     return 1..mtbl_len, \row, i => if lower(row[2]) == "marker" and not (i == 1 or i == mtbl_len) then return true end end
@@ -39,8 +35,7 @@ for folder in lfs.dir(".") do
     if sub(folder, 1, 2) == "ex" then                                                -- Only run examples    
         lfs.chdir(folder)                                                                   -- Change to example folder
         local config = loadfile('config.mad')                                               -- Load the config file 
-        -- if config then                                                                      -- Only run examples that have a config
-        if config and todo[folder] then
+        if config then                                                                      -- Only run examples that have a config
             local margins, ref_tbl = config()
             if run_example then
                 for file in lfs.dir(".") do                                                     -- Loop through every file in the example folder
@@ -64,30 +59,40 @@ for folder in lfs.dir(".") do
                     io.write("against " .. ref_file .. " \t")   
                     local ref = mtable "ref" {}:read("ex_ref/" .. ref_file):make_dict(1)                    -- Create mtable from reference file
                     local ref_mrgs = margins[ref_file]                                                      -- Get the error list for the result file
+                    local tolerances = {}
                     for col, margin in pairs(ref_mrgs) do                                                   -- Get every column that needs comparing    
+                        tolerances[col] = 0
                         local rows = res:getcol("name")                                                     -- Get the row names
                         for i, row in ipairs(rows) do                                                       -- Loop through every row
                             local madx_rowname = upper(row)!:gsub("DRIFT__", "DRIFT_")
                             local rowname = ref:getrow(row) and row or 
                                                  ref:getrow(madx_rowname) and madx_rowname                  -- Get the row from the reference file
                             if rowname then                                                                 -- If the row is not in the reference file
+                                -- print(ref_file, row, col)
                                 local res_val = res:get(row, col)                                           -- Get the result value
                                 local ref_val = ref:get(rowname, col) or                                    -- Try MAD-NG column          
                                                 ref:get(rowname, upper(col)) or                             -- Try upper-case MAD-NG
                                                 ref:get(rowname, col_names[col][sub(ref_file, -5, -5)])     -- Get translation from MAD-NG to MAD-X or PTC
                                 ref:get(row, col)                                                           -- Get the reference value
-                                print("row = ", row, "col = ", col)
-                                if res_val < 1 then                                                         -- If the value is small, use absolute error
+                                if abs(res_val) < 1 then                                                         -- If the value is small, use absolute error
+                                    tolerances[col] = abs((res_val - ref_val)) > tolerances[col] and 
+                                                        abs((res_val - ref_val)) or tolerances[col]
                                     assertAlmostEquals(res_val, ref_val, margin)
                                 else                                                                        -- If the value is large, use relative error
+                                    tolerances[col] = abs(res_val - ref_val)/abs(res_val) > tolerances[col] and 
+                                                        abs(res_val - ref_val)/abs(res_val) or tolerances[col]
                                     assertAlmostEquals(res_val - ref_val, 0, margin*abs(res_val))
                                 end
                             end
                         end
                     end
+                    -- for k, v in pairs(tolerances) do
+                    --     print(k .. " " .. v .. " ")
+                    -- end
                 end
                 io.write("\n")
             end
+            io.write("\n")
         end
         lfs.chdir("..")
     end
