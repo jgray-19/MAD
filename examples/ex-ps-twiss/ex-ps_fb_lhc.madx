@@ -5,6 +5,7 @@
 ************************************************************************************/
 
 option, -echo;
+set, format=".16e";
 
 /******************************************************************
  * Energy and particle type definition
@@ -19,9 +20,9 @@ value, BRHO, BEAM->PC * 3.3356;
  * Call lattice files
  ******************************************************************/
 
-call, file="ps_mu.seq";
-call, file="ps_ss.seq";
-call, file="ps_fb_lhc.str";
+call, file="ex_ref/ps_mu.seq";
+call, file="ex_ref/ps_ss.seq";
+call, file="ex_ref/ps_fb_lhc.str";
 
 // remove markers (does not work)
 !use, sequence=PS;
@@ -46,12 +47,12 @@ select, flag=twiss, column={name,keyword,s,x,px,betx,alfx,bety,alfy,dx,dy,mux,mu
 select, flag=ptc_twiss, clear;
 select, flag=ptc_twiss, column={name,keyword,s,x,px,beta11,alfa11,beta22,alfa22,disp1,disp2,mu1,mu2,l,angle,k1l,k2l,k3l,hkick,vkick};
 
-survey, file = "PS_survey_x.tfs";
-twiss , file = "PS_twiss_x.tfs", chrom;
+survey, file = "ex_ref/PS_survey_x.ref";
+twiss , file = "ex_ref/PS_twiss_x.ref", chrom;
 
 ptc_create_universe;
 ptc_create_layout, time=true, exact=true, model=2, method=6, nst=3;
-ptc_twiss, closed_orbit, icase=56, no=2, file="PS_twiss_p.tfs";
+ptc_twiss, closed_orbit, icase=56, no=2, file="ex_ref/PS_twiss_p.ref";
 ptc_end;
 
 removefile, file="internal_mag_pot.txt";
