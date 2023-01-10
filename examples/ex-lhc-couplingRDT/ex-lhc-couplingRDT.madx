@@ -3,8 +3,9 @@
 !#############################################################################
 !############################# Setting Up Lattice ############################
 !#############################################################################
+set, format=".16e";
 
-call, file="lhc_as-built.seq";
+call, file="ex_ref/lhc_as-built.seq";
 slicefactor = 8;
 beam;
 
@@ -46,7 +47,7 @@ ENDEDIT;
 USE, SEQUENCE=lhcb1;
 
 ! Call injections optics
-call, file="opticsfile.1";
+call, file="ex_ref/opticsfile.1";
 
 ! Set up beam
 beam, sequence=lhcb1, bv=1, energy=NRJ, particle=proton, npart=1.0e10, kbunch=1, ex=7.29767146889e-09, ey=7.29767146889e-09;
@@ -119,4 +120,5 @@ MATCH, CHROM;
 ENDMATCH;
 
 ! Twiss results to output file
-TWISS, FILE='twiss_x.tfs', CHROM, ripken=True;
+select, flag=twiss, column={NAME, S, X,PX,Y,PY,T,PT,ALFA11,BETA11,GAMA11,ALFA12,BETA12,GAMA12,ALFA21,BETA21,GAMA21,ALFA22,BETA22,GAMA22,MU1,DMU1};
+TWISS, FILE='ex_ref/twiss_x.ref', CHROM, ripken=True;

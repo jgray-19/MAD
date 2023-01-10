@@ -1,4 +1,5 @@
 option, -info;
+set, format=".16e";
 
 !-- user settings
 deltap = 1e-3; ! must be modified in the script, not here...
@@ -46,30 +47,31 @@ endsequence;
 use, sequence=sequ;
 
 !-- initial conditions
-coguess, x=-1e-3, px=1e-4, y=-1e-4, py=1e-3;
+coguess, x=-1e-3, px=1e-4, y=-1e-4, py=1e-3, t=0, pt=0;
 
 !-- columns selection
 select, flag=twiss, column={name, s, x, px, y, py, t, pt, betx, bety, mux, muy, alfx, alfy, dx, dpx, dy, dpy};
 select, flag=ptc_twiss, column={name, s, x, px, y, py, t, pt, betx, bety, mu1, mu2, alfx, alfy, disp1, disp2, disp3, disp4};
+select, flag=survey, column={name, s, l, angle, tilt, x, y, z, theta, phi, psi};
 
 !-- check geometry
-survey, file="survey_x.tfs";
+survey, file="ex_ref/survey_x.ref";
 
 !-- legacy twiss
-twiss, file="twiss0_x.tfs", deltap=1e-3, betx=1, bety=1; ! no closed orbit
-twiss, file="twiss1_x.tfs", deltap=1e-3, chrom;          ! do closed orbit
+twiss, file="ex_ref/twiss0_x.ref", deltap=1e-3, betx=1, bety=1; ! no closed orbit
+twiss, file="ex_ref/twiss1_x.ref", deltap=1e-3, chrom;          ! do closed orbit
 
 !-- ptc twiss
 ptc_create_universe ;
 ptc_setswitch, debuglevel=1, mapdump=4;
 ptc_create_layout, model=2, method=4, nst=1, time=true, exact=true ;
-!ptc_twiss, closed_orbit=false, no=1, icase=5, file="twiss0_p.tfs", deltap=1e-3,
+!ptc_twiss, closed_orbit=false, no=1, icase=5, file="ex_ref/twiss0_p.tfs", deltap=1e-3,
 !           x=-1e-3, px=1e-4, y=-1e-4, py=1e-3, t=0, pt=0, betx=1, bety=1, betz=1 ;
-ptc_twiss, closed_orbit=true , no=5, icase=5, file="twiss1_p.tfs", deltap=1e-3,
+ptc_twiss, closed_orbit=true , no=5, icase=5, file="ex_ref/twiss1_p.ref", deltap=1e-3,
            x=-1e-3, px=1e-4, y=-1e-4, py=1e-3, t=0, pt=0 ;
 ptc_end ;
 
-stop;
+! stop;
 
 !---------------------------------------
 !-- match tunes and chromaticities
@@ -88,11 +90,11 @@ lmdif, tolerance=1e-21;
 endmatch;
 
 ! BUG in MAD-X, deltap cannot be used as variable to init twiss...
-twiss, file="twiss_match_x.tfs", deltap=1e-3, chrom;
+twiss, file="ex_ref/twiss_match_x.ref", deltap=1e-3, chrom;
 
 ptc_create_universe ;
 ptc_create_layout, model=2, method=4, nst=1, time=true, exact=true ;
-ptc_twiss, closed_orbit=true, no=1, icase=5, file="twiss_match_p.tfs", deltap=1e-3,
+ptc_twiss, closed_orbit=true, no=1, icase=5, file="ex_ref/twiss_match_p.ref", deltap=1e-3,
            x=-1e-3, px=1e-4, y=-1e-4, py=1e-3, t=0, pt=0 ;
 ptc_end ;
 

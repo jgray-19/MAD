@@ -280,4 +280,4 @@ print("dQy.b1_sq="  , MADX.dqy_b1_sq  )
 !#############################################################################
 
 local tbl = twiss { sequence=lhcb1, method=4, chrom=true, coupling=true }
-tbl:write(rundir("twiss_n"))
+tbl:write(rundir("twiss_n-knobs"))

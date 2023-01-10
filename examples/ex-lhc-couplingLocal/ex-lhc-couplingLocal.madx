@@ -1,8 +1,9 @@
 ! TAKES ABOUT 3MIN, GENERATES 1800 TRACKING FILES!
 
 Option, -echo,-warn,-info;
-call,file="lhc_as-built.seq";
-call,file="opticsfile.21";
+set, format=".16e";
+call,file="ex_ref/lhc_as-built.seq";
+call,file="ex_ref/opticsfile.21";
 Option, echo,warn,info;
 
 value, NRJ;
@@ -19,7 +20,7 @@ KTQX1.R2    =             -KTQX1.L2 ; ! remove the link between these 2 vars
 kqsx3.l2 = -0.0015;
 kqsx3.r2 = +0.0015;
 
-twiss, sequence=lhcb1, file="before_tune_correction_x.tfs", RIPKEN, chrom;
+twiss, sequence=lhcb1, file="ex_ref/before_tune_correction_x.ref", RIPKEN, chrom;
 
 MATCH, SEQUENCE=lhcb1;
 VARY, NAME=dQx.b1, STEP=1.0E-5;
@@ -28,7 +29,8 @@ CONSTRAINT, SEQUENCE=lhcb1, RANGE=#e, MUX=62.3098, MUY=60.321539;
 LMDIF, CALLS=100, TOLERANCE=0.000001;
 endmatch;
 
-twiss, sequence=lhcb1, file="after_tune_correction_x.tfs", RIPKEN, chrom;
+twiss, sequence=lhcb1, file="ex_ref/after_tune_correction_x.ref", RIPKEN, chrom;
+stop;
 
 ptc_create_universe;
 ptc_create_layout,model=3,method=4,nst=3;

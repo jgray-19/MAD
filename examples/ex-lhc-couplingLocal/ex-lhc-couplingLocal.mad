@@ -3,6 +3,7 @@
 local refdir = \s -> 'ex_ref/'..(s or '')
 local rundir = \s -> 'ex_run/'..(s or '')
 MAD.filesys.mkdir(rundir())
+MAD.option.numfmt = "% -.16e"
 
 !#############################################################################
 !############################# Setting Up Lattice ############################

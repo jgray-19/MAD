@@ -11,6 +11,7 @@ local lcell  = 10    -- single cell length
 local refdir = \s -> 'ex_ref/'..(s or '')
 local rundir = \s -> 'ex_run/'..(s or '')
 MAD.filesys.mkdir(rundir())
+MAD.option.numfmt = "% -.16e"
 
 -- locals
 local beam, beta0, sequence, survey, track, cofind, twiss, match, option in MAD
@@ -33,8 +34,8 @@ local function mk_seq ()
   -- prepare beam depending on the user's charge sign...
   local sb = beam { particle = charge<0 and 'electron' or nil, energy=2 }
 
-  -- printf("particle: '%s', charge = %d, energy = %g, mass = %.8e\n",
-  --            sb.particle,   sb.charge,   sb.energy,     sb.mass)
+  printf("particle: '%s', charge = %d, energy = %g, mass = %.8e\n",
+             sb.particle,   sb.charge,   sb.energy,     sb.mass)
 
   -- parametric fodo cell (for fun, could use deferred expressions)
   local cell = \ang, chg -> sequence 'cell' {
@@ -119,16 +120,16 @@ local trk, mfl = cofind { sequence=seq,
 trk:write(rundir('cofind_n'), tk_col)
 
 -- twiss (no closed orbit)
--- print("twiss-noco...")
-local tws, mfl = twiss { sequence=seq,
+print("twiss-noco...")
+tws, mfl = twiss { sequence=seq,
   X0=beta0(X0), deltap=deltap, method=4, info=2, !debug=7
 }
 tws:write(rundir('twiss0_n'), tw_col)
 
 -- twiss (with closed orbit)
--- print("twiss-co...")
-local tws, mfl = twiss { sequence=seq,
-  X0=X0, deltap=deltap, method=4, mapdef=5, info=2, !debug=7, !chrom=true
+print("twiss-co...")
+tws, mfl = twiss { sequence=seq,
+  X0=X0, deltap=deltap, method=4, mapdef=5, info=2, chrom=true, implicit=true, !debug=7,
 }
 tws:write(rundir('twiss1_n'), tw_col)
 
@@ -139,6 +140,7 @@ X0[5], X0[6] = 0, 0 -- reset t,pt because we use deltap!
 !             tws.q1, tws.q2,    tws.dq1, tws.dq2)
 
 !os.exit()
+do return end
 
 -- match ---------------
 match_tunes_and_chroma (seq, X0)
