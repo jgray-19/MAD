@@ -97,6 +97,9 @@ for folder in lfs.dir(".") do
         lfs.chdir("..")
     end
 end
+io.write("****************************************\n")
+io.write("\tSUCCESS: All tests passed\n")
+io.write("****************************************\n")
 
 -- List of examples that are not working
 --[[ This won't work as the linac 4 sequence has an sbend with angle 0 (MAD-NG prevents this)
