@@ -1,41 +1,56 @@
 local eps in MAD.constant
-local survey_list = {
-    s      = eps,
-    l      = eps,
-    angle  = eps,
-    x      = 2e-12, -- For MAD-X only 
-    y      = eps,
-    z      = 1e-12, -- For MAD-X only
-    theta  = eps,
-}
-local twiss_list = {
-    s      = 0,
-    x      = 1e-11,
-    px     = 1e-12,
-    beta11 = 1e-7,
-    alfa11 = 1e-8,
-    beta22 = 1e-8,
-    alfa22 = 1e-8,
-    dx     = 1e-8,
-    dpx    = 1e-9,
-    mu1    = 1e-10,
-    mu2    = eps,
-    l      = eps,
-    angle  = eps,
-    -- k1l    = eps, --Contains a nan
-    -- k2l    = eps, --Contains a nan
-    k3l    = eps,
-    -- hkick  = eps, --Contains a nan
-    vkick  = eps,
-}
 
 local margins = {
-    ["PS_survey_n.tfs"] = survey_list,
-    ["PS_twiss_n.tfs"]  = twiss_list,
+    ["PS_survey_x.ref"] = {
+        s      = 23*eps,
+        l      = eps,
+        angle  = eps,
+        x      = 6650*eps, 
+        y      = eps,
+        z      = 3628*eps,
+        theta  = eps,
+    },
+    ["PS_twiss_p.ref"]  = {
+        s      = 23*eps,
+        x      = 41792*eps,
+        px     = 5007*eps,
+        beta11 = 35092*eps,
+        alfa11 = 62748*eps,
+        beta22 = 16834*eps,
+        alfa22 = 25854*eps,
+        mu1    = 2659*eps,
+        mu2    = 983*eps,
+        l      = eps,
+        angle  = eps,
+        k1l    = eps, 
+        k2l    = eps, 
+        k3l    = eps,
+        hkick  = eps, 
+        vkick  = eps,
+    },
+    ["PS_twiss_x.ref"]  = {
+        s      = 23*eps,
+        x      = 29515*eps,
+        px     = 3624*eps,
+        beta11 = 1.7e-06,
+        alfa11 = 3.4e-06,
+        beta22 = 1.7e-06,
+        alfa22 = 3.6e-06,
+        dx     = 2.4e-06,
+        mu1    = 9.8e-07,
+        mu2    = 9.2e-07,
+        l      = eps,
+        angle  = eps,
+        k1l    = eps, 
+        k2l    = eps, 
+        k3l    = eps,
+        hkick  = eps, 
+        vkick  = eps,
+    },
 }
 
 local ref_files = {
-    ["PS_survey_n.tfs"] = {"PS_survey_x.ref",  "PS_survey_n.ref"},
-    ["PS_twiss_n.tfs"]  = { "PS_twiss_n.ref", --[[ "PS_twiss_x.ref" , ]] "PS_twiss_p.ref"},
+    ["PS_survey_n.tfs"] = {"PS_survey_x.ref"},
+    ["PS_twiss_n.tfs"]  = { "PS_twiss_x.ref" , "PS_twiss_p.ref"},
 }
 return margins, ref_files

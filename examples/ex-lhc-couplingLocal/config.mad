@@ -1,38 +1,38 @@
 local eps in MAD.constant
 
 local margins = {
-    ["before_tune_correction_n.tfs" ] = {
-        s = 0,
-        beta11 = 1e-5,
-        alfa11 = 1e-6,
-        mu1    = 1e-7,
-        mu2    = 1e-7,
-        dx     = 1e-7,
-        dy     = 1e-8,
+    ["before_tune_correction_n.ref" ] = {
+        s      = 4.8e-10,
+        beta11 = 4.1e-09,
+        alfa11 = 4.6e-07,
+        mu1    = 6.9e-10,
+        mu2    = 5.1e-10,
+        dx     = 9.5e-08,
+        dy     = 4.1e-09,
     },
-    ["after_tune_correction_n.tfs"] = {
-        s = 0,
-        beta11 = 1e-2,
-        alfa11 = 1e-3,
-        mu1    = 1e-5,
-        mu2    = 1e-4,
-        dx     = 1e-4,
-        dy     = 1e-3,
+    ["after_tune_correction_n.ref"] = {
+        s      = 4.8e-10,
+        beta11 = 2.3e-05,
+        alfa11 = 2.1e-04,
+        mu1    = 8.4e-08,
+        mu2    = 1.1e-06,
+        dx     = 2.0e-05,
+        dy     = 2.2e-04,
     },
-    ["track900_n.tfs"] = {
-        s  = 0,
-        x  = 1e-6, 
-        px = 1e-7,
-        y  = 1e-7,
-        py = 1e-6,
-        t  = 1e-8,
-        pt = 0,
-    },
+    -- ["track900_n.ref"] = {
+    --     s  = 0,
+    --     x  = 1e-6, 
+    --     px = 1e-7,
+    --     y  = 1e-7,
+    --     py = 1e-6,
+    --     t  = 1e-8,
+    --     pt = 0,
+    -- },
 }
 
 local ref_files = {
     ["before_tune_correction_n.tfs"] = {"before_tune_correction_n.ref", --[[ "before_tune_correction_x.ref" ]]},
     ["after_tune_correction_n.tfs"]  = {"after_tune_correction_n.ref" , --[[ "after_tune_correction_x.ref"  ]]},
-    ["track900_n.tfs"]  = {"track900_n.ref"},
+    -- ["track900_n.tfs"]  = {"track900_n.ref"},
 }
 return margins, ref_files

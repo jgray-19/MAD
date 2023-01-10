@@ -1,21 +1,21 @@
 local eps = MAD.constant.eps
 local margins = {
-    ["lhcb1_twiss_n.tfs"] = {
-        s      = 0,
-        x      = 1e-8,
-        px     = 1e-9,
-        y      = 1e-12,
-        py     = 1e-14,
-        t      = 1e-11,
-        pt     = 1e-12,
-        alfa11 = 1e-6,
-        beta11 = 1e-5,
-        gama11 = 1e-8,
-        alfa22 = 1e-6,
-        beta22 = 1e-5,
-        gama22 = 1e-7,
-        mu1    = 1e-7,
-        dmu1   = 1e-3,
+    ["lhcb1_twiss_n.ref"] = {
+        s      = 4.8e-10,
+        x      = 2.5e-09,
+        px     = 1.3e-10,
+        y      = 5.0e-12,
+        py     = 4.5e-14,
+        t      = 7.1e-12,
+        pt     = 0,
+        alfa11 = 6.0e-09,
+        beta11 = 5.7e-09,
+        gama11 = 1.8e-09,
+        alfa22 = 3.6e-09,
+        beta22 = 3.1e-09,
+        gama22 = 1.9e-09,
+        mu1    = 4.9e-10,
+        dmu1   = 9.8e-04,
     }
 }
 
