@@ -63,10 +63,10 @@ twiss, file="ex_ref/twiss1_x.ref", deltap=1e-3, chrom;          ! do closed orbi
 
 !-- ptc twiss
 ptc_create_universe ;
-ptc_setswitch, debuglevel=1, mapdump=4;
+ptc_setswitch, debuglevel=1, mapdump=0;
 ptc_create_layout, model=2, method=4, nst=1, time=true, exact=true ;
-!ptc_twiss, closed_orbit=false, no=1, icase=5, file="ex_ref/twiss0_p.tfs", deltap=1e-3,
-!           x=-1e-3, px=1e-4, y=-1e-4, py=1e-3, t=0, pt=0, betx=1, bety=1, betz=1 ;
+ptc_twiss, closed_orbit=false, no=1, icase=5, file="ex_ref/twiss0_p.tfs", deltap=1e-3,
+          x=-1e-3, px=1e-4, y=-1e-4, py=1e-3, t=0, pt=0, betx=1, bety=1, betz=1 ;
 ptc_twiss, closed_orbit=true , no=5, icase=5, file="ex_ref/twiss1_p.ref", deltap=1e-3,
            x=-1e-3, px=1e-4, y=-1e-4, py=1e-3, t=0, pt=0 ;
 ptc_end ;
