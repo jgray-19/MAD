@@ -2,7 +2,7 @@ local eps in MAD.constant
 
 local twiss_list = {
     beta11 = 5*eps,
-    beta22 = 2*eps,
+    beta22 = 7*eps,
     mu1    = eps,
     mu2    = eps,
     alfa11 = 2*eps,

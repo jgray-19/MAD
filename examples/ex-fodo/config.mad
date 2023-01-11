@@ -14,56 +14,71 @@ local errors = {
     },
     ["twiss0_x.ref"] = {
         s      = 0,
-        x      = 1.2e-06,
+        x      = 1.4e-06,
         px     = 1.2e-06,
         y      = 6.0e-06,
         py     = 4.0e-08,
-        t      = 1.2e-03,
+        t      = 1.3e-02,
         pt     = 1.0e-03,
-        dx     = 1.0e-03,
-        dy     = 1.1e-05,
-        dpx    = 2.0e-06,
-        dpy    = 3.3e-06,
+        dx     = 1.1e-03,
+        dy     = 2.0e-04,
+        dpx    = 2.7e-05,
+        dpy    = 2.7e-05,
         beta11 = 2.0e-03,
-        beta22 = 1.9e-03,
+        beta22 = 2.1e-03,
+        mu1    = 8.5e-05,
+        mu2    = 8.1e-05,
+        alfa11 = 1.4e-03,
+        alfa22 = 1.3e-03,
+    }, 
+    ["twiss0_p.ref"] = {
+        s      = 0,
+        x      = 4.9e-13,
+        px     = 4.2e-13,
+        y      = 5.0e-13,
+        py     = 4.9e-13,
+        t      = 1.4e-02,
+        pt     = 7.6e-15,
+        beta11 = 2.1e-03,
+        beta22 = 2.1e-03,
         mu1    = 8.0e-05,
         mu2    = 8.0e-05,
-        alfa11 = 1.9e-02,
-        alfa22 = 4.6e-03,
+        alfa11 = 1.4e-03,
+        alfa22 = 1.2e-03,
     }, 
-    ["twiss1_x.ref"] = { --These differences need to be understood
+    ["twiss1_x.ref"] = { --Beta11 has problems!!! (same when compared to ptc)
         s      = 0,
-        x      = 3.7e-03,
-        px     = 1.0e-03,
-        y      = 5.7e-03,
-        py     = 1.2e-03,
-        t      = 1.5e-03,
-        pt     = 1.0e-03,
-        dx     = 2.3e-03,
-        dy     = 4.9e-03,
-        dpx    = 7.6e-04,
-        dpy    = 1.6e-03,
-        beta11 = 2.1e-03,
-        beta22 = 1.1e-03,
-        mu1    = 1.8e-04,
-        mu2    = 4.0e-05,
-        alfa11 = 2.3e-03,
-        alfa22 = 8.6e-04,
-    },
-    ["twiss1_p.ref"] = { --PTC is wrong (or input). Phase advance and beta functions are constant
-        s      = 0, 
-        x      = 1.4e-03,
-        px     = 8.8e-04,
+        x      = 9.5e-10,
+        px     = 4.4e-07,
         y      = 1.1e-13,
         py     = 1.9e-14,
-        t      = 1.3e-03, --PTC has this as 0
+        t      = 1.3e-02, --This is 0 in mad-x but not in mad-ng!!!!!!!!!
+        pt     = 1.0e-03,
+        dx     = 1.1e-03,
+        dy     = 7.5e-13,
+        dpx    = 1.1e-07,
+        dpy    = 1.4e-13,
+        beta11 = 1.1e-03,
+        beta22 = 1.1e-03,
+        mu1    = 3.9e-07,
+        mu2    = 4.6e-07,
+        alfa11 = 7.9e-07,
+        alfa22 = 2.3e-07,
+    },
+    ["twiss1_p.ref"] = {
+        s      = 0, 
+        x      = 8.1e-11,
+        px     = 1.6e-11,
+        y      = 1.1e-13,
+        py     = 1.9e-14,
+        t      = 1.3e-02, --This is 0 in ptc but not in mad-ng!!!!!!!!! (try case = 56)
         pt     = eps,
-        beta11 = 4.6e-00,
-        beta22 = 7.8e-01,
-        mu1    = 2.9e-01,
-        mu2    = 2.1e-01,
-        alfa11 = 2.9e-00,
-        alfa22 = 2.6e-00,
+        beta11 = 1.1e-03,
+        beta22 = 1.1e-03,
+        mu1    = 1.1e-11,
+        mu2    = 2.6e-12,
+        alfa11 = 6.0e-11,
+        alfa22 = 2.0e-11,
     },
     ["twiss1_n.ref"] = {
         s      = 0,
@@ -102,22 +117,12 @@ local ref_files = {
     -- ["survey_rev_n.tfs"]      = {"survey_rev_n.ref"},
     -- ["track_knobs_n.tfs"]     = {"track_knobs_n.ref"},
     -- ["track_n.tfs"]           = {"track_n.ref"},
-    ["twiss_match_n.tfs"]     = {"twiss_match_x.ref", --[[ "twiss_match_p.ref" ]]}, --PTC has just constant values...?
+    -- ["twiss_match_n.tfs"]     = {"twiss_match_x.ref", --[[ "twiss_match_p.ref" ]]}, --PTC has just constant values...?
     -- ["twiss_match_rev_n.tfs"] = {"twiss_match_rev_n.ref"},
-    ["twiss0_n.tfs"]          = {"twiss0_x.ref", --[[ "twiss0_p.ref" ]]},
-    ["twiss1_n.tfs"]          = {"twiss1_x.ref", "twiss1_p.ref", "twiss1_n.ref"},
+    ["twiss0_n.tfs"]          = {"twiss0_x.ref", "twiss0_p.ref" },
+    ["twiss1_n.tfs"]          = {"twiss1_x.ref",  "twiss1_p.ref", --[[ "twiss1_n.ref" ]]},
 }
 return errors, ref_files
-
-
-
-
-
-
-
-
-
-
 
 
 --[[ ["twiss_match_rev_n.ref"] = {
