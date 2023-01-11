@@ -2,12 +2,12 @@
 
 ! Links definitions
 option, warn,info;
-set, format="22.16e";
+set, format=".16e";
 
 option, -echo,-warn,-info;
 
-call, file="lhc_as-built.seq";
-call, file="opt_400_10000_400_3000.madx";
+call, file="ex_ref/lhc_as-built.seq";
+call, file="ex_ref/opt_400_10000_400_3000.madx";
 
 beam, sequence=lhcb1, energy=nrj, particle=proton;
 use, sequence=lhcb1;
