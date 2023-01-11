@@ -10,21 +10,23 @@ local assertAlmostEquals in MAD.utest
 local sub, upper, lower in string
 
 local run_example = false -- Set to true to run the examples before checking tfs tables
+local success = true
 
 local function err_fun (filename, msg)
+    success = false
     io.stderr:write("Error in " .. filename .. ": " .. msg .. "\n")
     io.stderr:write(debug.traceback())
 end
 
 local col_names = { -- A list of column names to translate from MAD-NG to MAD-X or PTC
-        beta11 = {x = "BETX" , p = "BETX" }, --Only gets translated if beta11 does not exist in the twiss table (No coupling present)
-        alfa11 = {x = "ALFX" , p = "ALFX" },
-        beta22 = {x = "BETY" , p = "BETY" },
-        alfa22 = {x = "ALFY" , p = "ALFY" },
-        mu1    = {x = "MUX"  , p = "MUX"  },
-        mu2    = {x = "MUY"  , p = "MUY"  },
-        dmu1   = {x = "DMUX" , p = "DMUX" },
-        dmu2   = {x = "DMUY" , p = "DMUY" },
+        beta11 = "BETX", --Only gets translated if beta11 does not exist in the twiss table (No coupling present)
+        alfa11 = "ALFX",
+        beta22 = "BETY",
+        alfa22 = "ALFY",
+        mu1    = "MUX" ,
+        mu2    = "MUY" ,
+        dmu1   = "DMUX",
+        dmu2   = "DMUY",
 }
 local function create_args(mtbl_len)
     return 1..mtbl_len, \row, i => if lower(row[2]) == "marker" and not (i == 1 or i == mtbl_len) then return true end end
@@ -33,22 +35,25 @@ end
 
 for folder in lfs.dir(".") do 
     if sub(folder, 1, 2) == "ex" then                                                -- Only run examples    
-        lfs.chdir(folder)                                                                   -- Change to example folder
-        local config = loadfile('config.mad')                                               -- Load the config file 
-        if config then                                                                      -- Only run examples that have a config
+        lfs.chdir(folder)                                                            -- Change to example folder
+        local config = loadfile('config.mad')                                        -- Load the config file 
+        if config and folder ~= "" then                                                               -- Only run examples that have a config
             local margins, ref_tbl = config()
             if run_example then
-                for file in lfs.dir(".") do                                                     -- Loop through every file in the example folder
-                    if sub(file, 1, 2) == "ex" and sub(file, -4) == ".mad" then   -- Only run files that start with ex and end with .mad
+                for file in lfs.dir(".") do                                          -- Loop through every file in the example folder
+                    if sub(file, 1, 2) == "ex" and sub(file, -4) == ".mad" then      -- Only run files that start with ex and end with .mad
                         io.write("Running " .. file .. " \n\n")
                         local errfun = \msg -> err_fun(file, msg)
-                        local env = {}                                                          -- Allows for access to environment
+                        local env = {}                                               -- Allows for access to environment
                         setmetatable(env, {__index = _G})
-                        local fun, err = loadfile(file, "t", env)                               -- Load file
-                        if fun then fun, err = xpcall(fun, errfun)                              -- Run file
-                        else err = errfun(err) 
+                        local fun, err = loadfile(file, "t", env)                    -- Load file
+                        if fun then fun, err = xpcall(fun, errfun)                   -- Run file
+                        else success = false ; err = errfun(err) 
                         end
-                        if err then io.stderr:write("Error in " .. file .. ": " .. err .. "\n") end
+                        if err then 
+                            success = false
+                            io.stderr:write("Error in " .. file .. ": " .. err .. "\n") 
+                        end
                     end
                 end
             end
@@ -60,34 +65,36 @@ for folder in lfs.dir(".") do
                     local ref = mtable "ref" {}:read("ex_ref/" .. ref_file):make_dict(1)                    -- Create mtable from reference file
                     local ref_mrgs = margins[ref_file]                                                      -- Get the error list for the result file
                     local tolerances = {}
-                    for col, margin in pairs(ref_mrgs) do                                                   -- Get every column that needs comparing    
-                        tolerances[col] = 0
-                        local rows = res:getcol("name")                                                     -- Get the row names
-                        for i, row in ipairs(rows) do                                                       -- Loop through every row
-                            local madx_rowname = upper(row)!:gsub("DRIFT__", "DRIFT_")
-                            local rowname = ref:getrow(row) and row or 
-                                                 ref:getrow(madx_rowname) and madx_rowname                  -- Get the row from the reference file
-                            if rowname then                                                                 -- If the row is not in the reference file
+                    local rows = res:getcol("name")                                                         -- Get the row names
+                    local ref_used = {}
+                    local res_used = {}
+                    for i, row in ipairs(rows) do                                                           -- Loop through every row
+                        local rowname = ref:getrow(row) and row or ref:getrow(upper(row)) and upper(row)    -- Get the row name
+                        res_used[row] = res_used[row] and res_used[row] + 1 or 1                            -- Keep track of how many times a row is used
+                        if rowname then                                                                     -- If the row is not in the reference file
+                            ref_used[rowname] = ref_used[rowname] and ref_used[rowname] + 1 or 1            -- Keep track of how many times a rowname is used
+                            for col, margin in pairs(ref_mrgs) do                                           -- Get every column that needs comparing    
                                 -- print(ref_file, row, col)
-                                local res_val = res:get(row, col)                                           -- Get the result value
-                                local ref_val = ref:get(rowname, col) or                                    -- Try MAD-NG column          
-                                                ref:get(rowname, upper(col)) or                             -- Try upper-case MAD-NG
-                                                ref:get(rowname, col_names[col][sub(ref_file, -5, -5)])     -- Get translation from MAD-NG to MAD-X or PTC
+                                local res_val = res:get(row, col, res_used[row])                            -- Get the result value
+                                local get_val = \colname -> ref:get(rowname, colname, ref_used[rowname])
+                                local ref_val = get_val(col) or                                             -- Try MAD-NG column          
+                                                get_val(upper(col)) or                                      -- Try upper-case MAD-NG
+                                                get_val(col_names[col])                                     -- Get translation from MAD-NG to MAD-X or PTC
                                 ref:get(row, col)                                                           -- Get the reference value
-                                if abs(res_val) < 1 then                                                         -- If the value is small, use absolute error
-                                    tolerances[col] = abs((res_val - ref_val)) > tolerances[col] and 
-                                                        abs((res_val - ref_val)) or tolerances[col]
+                                if abs(res_val) < 1 then                                                    -- If the value is small, use absolute error
+                                    local err = abs((res_val - ref_val))
+                                    tolerances[col] = tolerances[col] and (err > tolerances[col] and err or tolerances[col]) or err
                                     assertAlmostEquals(res_val, ref_val, margin)
                                 else                                                                        -- If the value is large, use relative error
-                                    tolerances[col] = abs(res_val - ref_val)/abs(res_val) > tolerances[col] and 
-                                                        abs(res_val - ref_val)/abs(res_val) or tolerances[col]
+                                    local err = abs(res_val - ref_val)/abs(res_val)
+                                    tolerances[col] = tolerances[col] and (err > tolerances[col] and err or tolerances[col]) or err
                                     assertAlmostEquals(res_val - ref_val, 0, margin*abs(res_val))
                                 end
                             end
                         end
                     end
                     -- for k, v in pairs(tolerances) do
-                    --     print(k .. " " .. v .. " ")
+                    --     print(k .. " " .. v .. " ", ref_mrgs[k] >= v and "OK" or "FAIL", ref_mrgs[k] - v)
                     -- end
                 end
                 io.write("\n")
@@ -97,9 +104,17 @@ for folder in lfs.dir(".") do
         lfs.chdir("..")
     end
 end
-io.write("****************************************\n")
-io.write("\tSUCCESS: All tests passed\n")
-io.write("****************************************\n")
+
+if success then
+    io.write("****************************************\n")
+    io.write("\tSUCCESS: All tests passed\n")
+    io.write("****************************************\n")
+else
+    io.write("****************************************\n")
+    io.write("\tFAILURE: An error occured\n")
+    io.write("****************************************\n")
+end
+
 
 -- List of examples that are not working
 --[[ This won't work as the linac 4 sequence has an sbend with angle 0 (MAD-NG prevents this)
