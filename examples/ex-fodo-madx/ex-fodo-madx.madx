@@ -3,4 +3,12 @@ set, format=".16e";
 beam;
 use, sequence=seq;
 select, flag=twiss, column={name, s, betx, bety, mux, muy, alfx, alfy};
+select, flag=ptc_twiss, column={name, s, beta11, beta22, mu1, mu2, alfx, alfy};
 twiss, file="ex_ref/twiss_x.ref";
+
+
+ptc_create_universe ;
+ptc_setswitch, debuglevel=0, mapdump=0, madprint=true;
+ptc_create_layout, method=4, nst=1, time=true, exact=true, ;
+ptc_twiss, file="ex_ref/twiss_p.ref";
+ptc_end ;
