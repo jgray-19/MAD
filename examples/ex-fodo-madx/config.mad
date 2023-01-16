@@ -2,8 +2,6 @@ local eps in MAD.constant
 
 local margins = {
     ["twiss_x.ref"] = {
-        t     = eps,
-        pt    = eps,
         beta11 = 5*eps,
         beta22 = 7*eps,
         mu1    = eps,
@@ -12,8 +10,6 @@ local margins = {
         alfa22 = 5*eps,
     },
     ["twiss_p.ref"] = {
-        t     = eps,
-        pt    = eps,
         beta11 = 6*eps,
         beta22 = 7*eps,
         mu1    = eps,

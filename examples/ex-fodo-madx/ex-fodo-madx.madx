@@ -12,3 +12,5 @@ ptc_setswitch, debuglevel=0, mapdump=0, madprint=true;
 ptc_create_layout, method=4, nst=1, time=true, exact=true, ;
 ptc_twiss, file="ex_ref/twiss_p.ref";
 ptc_end ;
+
+removefile, file="internal_mag_pot.txt";
