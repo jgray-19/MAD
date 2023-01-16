@@ -1,7 +1,7 @@
 local eps = MAD.constant.eps
 local margins = {
     ["twiss_x.ref"] = {
-        -- s      = 0, -- The MAD-X one starts at IP3 not IP1, so s is very different.
+        s      = 1.6e-10,
         x      = 8.7e-08,
         px     = 2.7e-09,
         y      = 1.3e-09,
@@ -20,7 +20,7 @@ local margins = {
         alfa22 = 8.5e-04,
         beta22 = 7.4e-04,
         gama22 = 4.2e-04,
-        mu1    = 4.7e-05, --This has to be 
+        mu1    = 4.7e-05,
         dmu1   = 1.3e-02, 
     }
 }
