@@ -1,0 +1,42 @@
+-- ./mad ex-fodo-madx.mad
+
+-- assume fodo.seq in current directory for mode = 'madxload'
+-- example built from Rogelio's MAD-X example, see fodo-madx.madx
+
+local seq -- forward declaration
+local sfx
+local refdir = \s -> 'ex_ref/'..(s or '')
+local rundir = \s -> 'ex_run/'..(s or '')
+MAD.filesys.mkdir(rundir())
+MAD.option.numfmt = "% -.16e"
+
+local sequence, multipole in MAD.element
+local beta0 in MAD
+local deferred in MAD.typeid
+local sin, pi in math
+local beam, twiss in MAD
+local cols = {'name', 's',"t", "pt", 'beta11', 'beta22', 'mu1', 'mu2', 'alfa11', 'alfa22'}
+local deltap = 1e-3
+--MADX loading version
+MADX:load(refdir("fodo.seq"), rundir("fodo.mad"))       -- convert on need
+seq = MADX.seq
+
+seq.beam = beam -- use default beam
+
+local mtbl = twiss {sequence=seq, method=4, deltap=deltap, ptcmodel=true}
+mtbl:write(rundir("twiss_dp.tfs"), cols)
+
+local X0 = {-1e-4, 1e-4, -1e-4,1e-3, 0, 0 }
+-- local X0 = { 0, 0, 0, 0, 0, 0 }
+local noco = beta0({table.unpack(X0)})
+local mtbl = twiss {sequence=seq,  X0=noco, method=4, ptcmodel=true}
+mtbl:write(rundir("twiss_noco.tfs"), cols)
+
+local dp_noco = beta0({table.unpack(X0)})
+dp_noco.beta11 = dp_noco.beta11 / (1 + deltap)
+dp_noco.beta22 = dp_noco.beta22 / (1 + deltap)
+dp_noco.beta33 = dp_noco.beta33 / (1 + deltap)
+local mtbl = twiss {sequence=seq,  X0=dp_noco, method=4, deltap=deltap, ptcmodel=true}
+mtbl:write(rundir("twiss_dp_noco.tfs"), cols)
+
+

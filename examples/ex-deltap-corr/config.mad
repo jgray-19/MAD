@@ -1,0 +1,27 @@
+local eps in MAD.constant
+
+local tws_tbl =  {
+    t     = eps,
+    pt    = eps,
+    beta11 = eps,
+    beta22 = eps,
+    mu1    = eps,
+    mu2    = eps,
+    alfa11 = eps,
+    alfa22 = eps,
+}
+
+local margins = {
+    ["twiss_dp_noco_x.ref"] = tws_tbl,
+    ["twiss_dp_noco_p.ref"] = tws_tbl,
+    ["twiss_dp_x.ref"]      = tws_tbl,
+    ["twiss_dp_p.ref"]      = tws_tbl,
+    ["twiss_noco_x.ref"]    = tws_tbl,
+    ["twiss_noco_p.ref"]    = tws_tbl,
+}
+local ref_files = {
+    ["twiss_dp_noco.tfs"] = {"twiss_dp_noco_x.ref", "twiss_dp_noco_p.ref"},
+    ["twiss_dp.tfs"] = {"twiss_dp_x.ref", "twiss_dp_p.ref"},
+    ["twiss_noco"] = {"twiss_noco_x.ref", "twiss_noco_p.ref"},
+}
+return margins, ref_files
