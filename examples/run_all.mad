@@ -9,7 +9,7 @@ local abs in math
 local assertAlmostEquals in MAD.utest
 local sub, upper, lower in string
 
-local run_example = true -- Set to true to run the examples before checking tfs tables
+local run_example = false -- Set to true to run the examples before checking tfs tables
 local success = true
 local _ = nil -- Used to ignore values
 
@@ -41,8 +41,8 @@ end
 for folder in lfs.dir(".") do 
     if sub(folder, 1, 2) == "ex" then                                                -- Only run examples    
         lfs.chdir(folder)                                                            -- Change to example folder
-        local config, err = loadfile('config.mad')                                   -- Load the config file 
-        if config and folder == "ex-fodo" then                                       -- Only run examples that have a config
+        local config, err = loadfile('config.mad')                                   -- Load the config file (This is not very good, if the config file has an error, it will not be caught)
+        if config then                                       -- Only run examples that have a config
             local margins, ref_tbl = config()
             if run_example then
                 for file in lfs.dir(".") do                                          -- Loop through every file in the example folder
@@ -66,10 +66,10 @@ for folder in lfs.dir(".") do
                 local res = mtable "res" {}:read("ex_run/" .. res_file)                                     -- Create mtable from result file
                 io.write("Checking " .. res_file .. "\t")
                 for i, ref_file in ipairs(ref_files) do                                                     -- Loop through every reference file listed in config.mad
-                    io.write("\nagainst " .. ref_file .. " \n")   
+                    io.write("against " .. ref_file .. " \t")   
                     local ref = mtable "ref" {}:read("ex_ref/" .. ref_file):make_dict(1)                    -- Create mtable from reference file
                     local ref_mrgs = margins[ref_file]                                                      -- Get the error list for the result file
-                    local tolerances = {}
+                    -- local tolerances = {}
                     local rows = res:getcol("name")                                                         -- Get the row names
                     local ref_used = {}
                     local res_used = {}
@@ -88,20 +88,20 @@ for folder in lfs.dir(".") do
                                 if is_callable(margin) then res_val, margin = margin(res_val) end           -- If the margin is a function, call it
                                 if abs(res_val) < 1 then                                                    -- If the value is small, use absolute error
                                     local err = abs((res_val - ref_val))
-                                    tolerances[col] = tolerances[col] and (err > tolerances[col] and err or tolerances[col]) or err
+                                    -- tolerances[col] = tolerances[col] and (err > tolerances[col] and err or tolerances[col]) or err
                                     assertAlmostEquals(res_val, ref_val, margin)
                                 else                                                                        -- If the value is large, use relative error
                                     local err = abs(res_val - ref_val)/abs(res_val)
-                                    tolerances[col] = tolerances[col] and (err > tolerances[col] and err or tolerances[col]) or err
+                                    -- tolerances[col] = tolerances[col] and (err > tolerances[col] and err or tolerances[col]) or err
                                     assertAlmostEquals(res_val - ref_val, 0, margin*abs(res_val))
                                 end
                             end
                         end
                     end
-                    for k, v in pairs(tolerances) do
-                        if is_callable(ref_mrgs[k]) then _, ref_mrgs[k] = ref_mrgs[k](v) end
-                        print(k .. " " .. v .. " ", ref_mrgs[k] >= v and "OK" or "FAIL", ref_mrgs[k] - v)
-                    end
+                    -- for k, v in pairs(tolerances) do
+                    --     if is_callable(ref_mrgs[k]) then _, ref_mrgs[k] = ref_mrgs[k](v) end
+                    --     print(k .. " " .. v .. " ", ref_mrgs[k] >= v and "OK" or "FAIL", ref_mrgs[k] - v)
+                    -- end
                 end
                 io.write("\n")
             end
