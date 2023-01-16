@@ -16,10 +16,25 @@ local margins = {
         gama22 = 1.9e-09,
         mu1    = 4.9e-10,
         dmu1   = 9.8e-04,
+    },
+    ["lhcb1_twiss_x.ref"] = {
+        s      = 4.0e-14,
+        x      = 1.1e-07,
+        px     = 1.1e-08,
+        y      = 2.9e-08,
+        py     = 4.9e-09,
+        t      = 5.9e-08,
+        pt     = 0,
+        alfa11 = 4.3e-05,
+        beta11 = 4.7e-05,
+        alfa22 = 3.5e-05,
+        beta22 = 3.6e-05,
+        mu1    = 2.5e-07,
+        dmu1   = 7.6e-03,
     }
 }
 
 local ref_files = {
-    ["lhcb1_twiss_n.tfs"]  = {"lhcb1_twiss_n.ref", --[[ "twiss_x.ref" ]]},
+    ["lhcb1_twiss_n.tfs"]  = {"lhcb1_twiss_n.ref", "lhcb1_twiss_x.ref" },
 }
 return margins, ref_files

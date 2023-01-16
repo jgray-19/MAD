@@ -20,8 +20,8 @@ local margins = {
         alfa22 = 8.5e-04,
         beta22 = 7.4e-04,
         gama22 = 4.2e-04,
-        -- mu1    = 1e-00, --These are wrong due to how cycling works differently in each program.
-        -- dmu1   = 1e-00, 
+        mu1    = 4.7e-05, --This has to be 
+        dmu1   = 1.3e-02, 
     }
 }
 

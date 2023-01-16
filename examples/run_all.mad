@@ -3,7 +3,7 @@
 
 -- Import modules
 local lfs = MAD.filesys
-local is_matrix in MAD.typeid
+local is_matrix, is_callable in MAD.typeid
 local mtable in MAD
 local abs in math
 local assertAlmostEquals in MAD.utest
@@ -11,6 +11,7 @@ local sub, upper, lower in string
 
 local run_example = true -- Set to true to run the examples before checking tfs tables
 local success = true
+local _ = nil -- Used to ignore values
 
 local function err_fun (filename, msg)
     success = false
@@ -38,10 +39,10 @@ end
 
 
 for folder in lfs.dir(".") do 
-    if sub(folder, 1, 2) == "ex" or folder == "madx-discrepancies" then                                                -- Only run examples    
+    if sub(folder, 1, 2) == "ex" then                                                -- Only run examples    
         lfs.chdir(folder)                                                            -- Change to example folder
-        local config, err = loadfile('config.mad')                                        -- Load the config file 
-        if config and folder == "madx-discrepancies" then                                                               -- Only run examples that have a config
+        local config, err = loadfile('config.mad')                                   -- Load the config file 
+        if config and folder == "ex-fodo" then                                       -- Only run examples that have a config
             local margins, ref_tbl = config()
             if run_example then
                 for file in lfs.dir(".") do                                          -- Loop through every file in the example folder
@@ -78,26 +79,27 @@ for folder in lfs.dir(".") do
                         if rowname then                                                                     -- If the row is not in the reference file
                             ref_used[rowname] = ref_used[rowname] and ref_used[rowname] + 1 or 1            -- Keep track of how many times a rowname is used
                             for col, margin in pairs(ref_mrgs) do                                           -- Get every column that needs comparing    
-                                -- print(ref_file, row, col)
                                 local res_val = res:get(row, col, res_used[row])                            -- Get the result value
                                 local get_val = \colname -> ref:get(rowname, colname, ref_used[rowname])
                                 local ref_val = get_val(col) or                                             -- Try MAD-NG column          
                                                 get_val(upper(col)) or                                      -- Try upper-case MAD-NG
                                                 get_val(col_names[col])                                     -- Get translation from MAD-NG to MAD-X or PTC
                                 ref:get(row, col)                                                           -- Get the reference value
+                                if is_callable(margin) then res_val, margin = margin(res_val) end           -- If the margin is a function, call it
                                 if abs(res_val) < 1 then                                                    -- If the value is small, use absolute error
                                     local err = abs((res_val - ref_val))
                                     tolerances[col] = tolerances[col] and (err > tolerances[col] and err or tolerances[col]) or err
-                                    -- assertAlmostEquals(res_val, ref_val, margin)
+                                    assertAlmostEquals(res_val, ref_val, margin)
                                 else                                                                        -- If the value is large, use relative error
                                     local err = abs(res_val - ref_val)/abs(res_val)
                                     tolerances[col] = tolerances[col] and (err > tolerances[col] and err or tolerances[col]) or err
-                                    -- assertAlmostEquals(res_val - ref_val, 0, margin*abs(res_val))
+                                    assertAlmostEquals(res_val - ref_val, 0, margin*abs(res_val))
                                 end
                             end
                         end
                     end
                     for k, v in pairs(tolerances) do
+                        if is_callable(ref_mrgs[k]) then _, ref_mrgs[k] = ref_mrgs[k](v) end
                         print(k .. " " .. v .. " ", ref_mrgs[k] >= v and "OK" or "FAIL", ref_mrgs[k] - v)
                     end
                 end
