@@ -1,23 +1,59 @@
 local eps in MAD.constant
-
-local tws_tbl =  {
-    t     = eps,
-    pt    = eps,
-    beta11 = eps,
-    beta22 = eps,
-    mu1    = eps,
-    mu2    = eps,
-    alfa11 = eps,
-    alfa22 = eps,
-}
-
 local margins = {
-    ["twiss_dp_noco_x.ref"] = tws_tbl,
-    ["twiss_dp_noco_p.ref"] = tws_tbl,
-    ["twiss_dp_x.ref"]      = tws_tbl,
-    ["twiss_dp_p.ref"]      = tws_tbl,
-    ["twiss_noco_x.ref"]    = tws_tbl,
-    ["twiss_noco_p.ref"]    = tws_tbl,
+    ["twiss_dp_noco_x.ref"] = {
+        beta11 = \v-> (v*(1+1e-3), 1.3e-05),
+        beta22 = \v-> (v*(1+1e-3), 1.3e-05),
+        mu1    = 4.9e-06,
+        mu2    = 5.0e-06,
+        alfa11 = 3.3e-05,
+        alfa22 = 3.1e-05,
+    },
+    ["twiss_dp_noco_p.ref"] = {
+        t     = 1.1e-14,
+        pt    = eps,
+        beta11 = \v-> (v*(1+1e-3), 1.4e-10),
+        beta22 = \v-> (v*(1+1e-3), 1.4e-10),
+        mu1    = 2.8e-12,
+        mu2    = 4.8e-12,
+        alfa11 = 1.4e-10,
+        alfa22 = 1.4e-10,
+    },
+    ["twiss_dp_x.ref"]      = {
+        beta11 = \v-> (v*(1+1e-3), 10*eps),
+        beta22 = \v-> (v*(1+1e-3), 4*eps),
+        mu1    = eps,
+        mu2    = eps,
+        alfa11 = 12*eps,
+        alfa22 = eps,
+    },
+    ["twiss_dp_p.ref"]      = {
+        t     = 1.8e-14,
+        pt    = eps,
+        beta11 = \v-> (v*(1+1e-3), 7*eps),
+        beta22 = \v-> (v*(1+1e-3), 4*eps),
+        mu1    = eps,
+        mu2    = eps,
+        alfa11 = 4*eps,
+        alfa22 = 6*eps,
+    },
+    ["twiss_noco_x.ref"]    = { -- The initial coordinates are not properly set it seems in MAD-X
+        beta11 = 4.5e-06,
+        beta22 = 1.3e-05,
+        mu1    = 5.1e-06,
+        mu2    = 4.9e-06,
+        alfa11 = 3.3e-05,
+        alfa22 = 3.1e-05,
+    },
+    ["twiss_noco_p.ref"]    = {
+        t      = 1.5e-14,
+        pt     = eps,
+        beta11 = 2*eps,
+        beta22 = 5*eps,
+        mu1    = eps,
+        mu2    = 2*eps,
+        alfa11 = 8*eps,
+        alfa22 = 8*eps,
+    },
 }
 local ref_files = {
     ["twiss_dp_noco.tfs"] = {"twiss_dp_noco_x.ref", "twiss_dp_noco_p.ref"},

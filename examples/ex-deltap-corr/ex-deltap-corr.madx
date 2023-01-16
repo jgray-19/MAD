@@ -1,10 +1,7 @@
-option, debug=true;
 call, file="ex_ref/fodo.seq";
 set, format=".16e";
 beam;
 use, sequence=seq;
-
-dumpsequ, LEVEL=1;
 
 select, flag=twiss, column={name, s, t, pt, betx, bety, mux, muy, alfx, alfy};
 select, flag=ptc_twiss, column={name, s, t, pt, beta11, beta22, alfa11, alfa22, mu1, mu2, alfx, alfy};
@@ -18,12 +15,6 @@ twiss, file="ex_ref/twiss_noco_x.ref", betx=1, bety=1;
 coguess, x=-1e-4, px=1e-4, y=-1e-4, py=1e-3, t=0, pt=0; !Equivalent to x = px = y = py = t = pt = 0 in MAD-NG and PTC??
 twiss, file="ex_ref/twiss_dp_noco_x.ref", deltap=1e-3, betx=1, bety=1;
 
-
-! ptc_create_universe ;
-! ptc_setswitch, debuglevel=0, mapdump=0, madprint=true;
-! ptc_create_layout, method=4, nst=1, time=true, exact=true, ;
-! ptc_twiss, file="ex_ref/twiss_p.ref";
-! ptc_end ;
 
 ptc_create_universe ;
 ptc_setswitch, debuglevel=0, mapdump=0, madprint=true;
