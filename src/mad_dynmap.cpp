@@ -239,8 +239,8 @@ inline void bxbyh (const cflw<M> &m, const V &x, const V &y, T &bx, T &by)
     bty = (bty + R(m.bfy[k])) * y;
   }
 
-  bx = bx + btx + R(m.bfx[k+1]); // Not using += reduces numerical instability with Lua 
-  by = by + bty + R(m.bfy[k+1]);
+  bx += btx + R(m.bfx[k+1]); // Better to enforce associativity in Lua. 
+  by += bty + R(m.bfy[k+1]);
 }
 
 // --- patches ----------------------------------------------------------------o
