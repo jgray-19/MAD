@@ -370,7 +370,10 @@ function misalignent (elm, m, lw)                                            -- 
 
   -- translation
   if algn.trn then  _T:fill{edir*algn.dx, edir*algn.dy, algn.ds} else _T:zeros() end
-  if algn.trn and algn.rot then _T = _R:rotzxy(-edir*algn.dphi, edir*algn.dthe, edir*algn.dpsi, true)*_T end
+  -- PTC applies the rotation to the translation before doing the translation
+  if algn.trn and algn.rot then 
+    _R:rotzxy(-edir*algn.dphi, edir*algn.dthe, edir*algn.dpsi, true):mul(_T, _T)
+  end
   -- rotate
   if algn.rot and sdir > 0 then
     yrotation(elm, m,  edir,  algn.dthe)
@@ -378,7 +381,7 @@ function misalignent (elm, m, lw)                                            -- 
     srotation(elm, m,  edir,  algn.dpsi)
   end
 
-  -- translate
+  -- translate (Weighting by edir is done above and in translate so needs to be unweighted here)
   if algn.trn then
     translate(elm, m, 1, edir*_T[1], edir*_T[2], _T[3])
   end
@@ -399,37 +402,32 @@ function misalignexi (elm, m, lw)                                            -- 
   local el, eld, ang, tlt, sdir, edir, tdir, algn in m
   local mang = m.mang or ang
 
-  -- translation
+  -- translation (Needs to be weighted by edir before rtbar is computed)
   if algn.trn then _T:fill{edir*algn.dx, edir*algn.dy, algn.ds} else _T:zeros() end
 
-  -- rotation
+  -- rotation (Needs to be weighted by edir before rtbar is computed)
   if algn.rot then _R:rotzxy(-edir*algn.dphi, edir*algn.dthe, edir*algn.dpsi) end
 
-  -- compute Rbar, Tbar
+  -- compute Rbar, Tbar (PTC uses path length for misalignment)
   _C.mad_mat_rtbar(_Rb._dat, _Tb._dat, abs(eld or el), mang, tlt, algn.rot and _R._dat or nil, _T._dat)
 
   -- misalignment at exit and local/global frames
   -- forward : x2  = Rb^-1*(x2'-Tb)
   -- backward: x2' = Rb*x2+Tb
 
-  -- _T:print("T")
-  -- _R:print("R")
-  -- _Tb:print("Tb")
-  -- _Rb:print("Rb")
-
   -- rotate
-  if algn.rot and sdir > 0 then
+  if algn.rot and sdir > 0 then -- Weighting by edir is done above
     local ax, ay, az = _Rb:torotzxy()
     srotation(elm, m, -1, az)
     xrotation(elm, m, -1, ax)
     yrotation(elm, m, -1, ay)
   end
 
-  -- translate
-  translate(elm, m, -1, edir*_Tb[1], edir*_Tb[2], _Tb[3])
+  -- translate (Weighting by edir is done above and in translate so needs to be unweighted here)
+  translate(elm, m, -1, edir*_Tb[1], edir*_Tb[2], _Tb[3]) 
 
   -- rotate
-  if algn.rot and sdir < 0 then
+  if algn.rot and sdir < 0 then -- Weighting by edir is done above
     local ax, ay, az = _Rb:torotzxy()
     yrotation(elm, m,  1, ay)
     xrotation(elm, m,  1, ax)
