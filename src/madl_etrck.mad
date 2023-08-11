@@ -874,6 +874,7 @@ local function track_sbend (elm, m, e1_, e2_)
   local track = #elm == 0 and trackelm or tracksub
   track(elm, m, inter, thick, kick, curex_fringe)
   m.e1, m.e2, m.snm = nil, nil, 0
+  if m.cmap then m.cflw.snm = 0 end
 end
 
 local function track_rbend (elm, m)
