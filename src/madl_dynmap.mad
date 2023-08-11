@@ -1791,11 +1791,51 @@ function mad8_wedge (elm, m, lw_, e)     -- [FRINGE_TEAPOT:MAD8_WEDGE]          
 
   m.atdebug(elm, m, 'mad8_wedge:1')
 end
+local n_wedge = 0
+local wyosh = { [0] = 1,
+  0.102799849391985E0 , -0.196061023297549E1,  0.193813913762276E1 ,
+ -0.158240635368243E0 , -0.144485223686048E1,  0.253693336566229E0 ,
+  0.914844246229740E0 
+}
+
+for i=1,7 do
+  wyosh[0]=wyosh[0]-2*wyosh[i]
+end
+
+local function wedge_trans(elm, m, at, j, b1)
+  for i = 1, m.npar do 
+    local beam, x, px in m[i]
+    local b  = beam and beam.beta or m.beam.beta
+    local b1 = beam and b1*beam.charge or b1*m.beam.charge
+    m[i].px = px-at*wyosh[j]*b1*x/2
+  end
+end
+
+local function wedge_int(elm, m, lw_, e)
+  local beam, edir in m
+  local b  = beam.beta
+  local b1 = edir*m.knl[1]/m.el
+  local at = e/n_wedge
+  
+  for i = 1, n_wedge do 
+    for j = 7, 0, -1 do
+      wedge_trans(elm, m, at, j, b1)
+      yrotation(elm, m, -wyosh[j], at)
+      wedge_trans(elm, m, at, j, b1)
+    end
+    for j = 1, 7 do 
+      wedge_trans(elm, m, at, j, b1)
+      yrotation(elm, m, -wyosh[j], at)
+      wedge_trans(elm, m, at, j, b1)
+    end 
+  end
+end
 
 function bend_wedge (elm, m, lw_, e) -- [WEDGE] see also [sr]bend_thick      -- checked
   if e == 0 then return end
   if abs(m.knl[1]) < minstr then return yrotation(elm,m,1,-e) end
   m.atdebug(elm, m, 'bend_wedge:0')
+  if n_wedge > 0 then return wedge_int(elm, m, lw_, e) end
 
   local el, eld, tdir, knl, beam in m
   local   k0 = knl[1]/el*tdir
