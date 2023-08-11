@@ -381,14 +381,21 @@ template <typename M>
 inline void misalignent (cflw<M> &m)
 {
   mdump(0);
+  num_t r[3*3];
+  num_t t[3]={m.edir*m.algn.dx, m.edir*m.algn.dy, m.algn.ds}; // t needs to be weighted before rotation
+
+  if (m.algn.rot && m.algn.trn) {
+    mad_mat_rotyxz(r, m.edir*m.algn.dphi, -m.edir*m.algn.dthe, -m.edir*m.algn.dpsi, false);
+    mad_mat_mul(r, t, t, 3, 1, 3);
+  }
+
   if (m.algn.rot && m.sdir > 0) {
     yrotation<M>(m,  m.edir, m.algn.dthe);
     xrotation<M>(m, -m.edir, m.algn.dphi);
     srotation<M>(m,  m.edir, m.algn.dpsi);
   }
 
-  if (m.algn.trn)
-    translate<M>(m, m.sdir, m.algn.dx, m.algn.dy, m.algn.ds);
+  translate<M>(m, 1, m.edir*t[0], m.edir*t[1], t[2]);
 
   if (m.algn.rot && m.sdir < 0) {
     srotation<M>(m, -m.edir, m.algn.dpsi);
@@ -403,30 +410,31 @@ inline void misalignexi (cflw<M> &m)
 {
   mdump(0);
   num_t rb[3*3], r[3*3];
-  num_t tb[3]  , t[3]={m.algn.dx, m.algn.dy, m.algn.ds};
+  num_t tb[3]  , t[3]={m.edir*m.algn.dx, m.edir*m.algn.dy, m.algn.ds}; // t needs to be weighted before rotation
 
   if (m.algn.rot)
-    mad_mat_rotyxz(r, m.algn.dphi, -m.algn.dthe, -m.algn.dpsi, true);
+    mad_mat_rotyxz(r, m.edir*m.algn.dphi, -m.edir*m.algn.dthe, -m.edir*m.algn.dpsi, true); // rotation needs to be weighted before rtbar
 
   // compute Rbar, Tbar
-  mad_mat_rtbar(rb, tb, fabs(m.el), fval(m.mang), fval(m.tlt), m.algn.rot ? r:0, t);
+  num_t ld = (fval(m.eld) ? fabs(m.eld) : fabs(m.el));
+  mad_mat_rtbar(rb, tb, ld, fval(m.mang), fval(m.tlt), m.algn.rot ? r:0, t);
 
   if (m.algn.rot && m.sdir > 0) {
     num_t v[3];
-    mad_mat_torotyxz(rb, v, true);
-    srotation<M>(m, -m.edir, -v[2]);
-    xrotation<M>(m,  m.edir, -v[0]);
-    yrotation<M>(m, -m.edir, -v[1]);
+    mad_mat_torotyxz(rb, v, true); // Returns negative of the angles
+    srotation<M>(m, 1, v[2]); // No edir as weighting handled beforehand
+    xrotation<M>(m, 1, v[0]);
+    yrotation<M>(m, 1, v[1]);
   }
 
-  if (m.algn.trn) translate<M>(m, -m.sdir, tb[0], tb[1], tb[2]);
+  translate<M>(m, -1, m.edir*tb[0], m.edir*tb[1], tb[2]); // Translation needs to be unweighted due to weighting in translation map
 
   if (m.algn.rot && m.sdir < 0) {
     num_t v[3];
-    mad_mat_torotyxz(rb, v, true);
-    yrotation<M>(m,  m.edir, -v[1]);
-    xrotation<M>(m, -m.edir, -v[0]);
-    srotation<M>(m,  m.edir, -v[2]);
+    mad_mat_torotyxz(rb, v, true); // Returns negative of the angles
+    yrotation<M>(m, 1, -v[1]);// No edir as weighting handled beforehand
+    xrotation<M>(m, 1, -v[0]);
+    srotation<M>(m, 1, -v[2]);
   }
   mdump(1);
 }
