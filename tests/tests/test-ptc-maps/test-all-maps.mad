@@ -1,0 +1,61 @@
+--[=[
+ o-----------------------------------------------------------------------------o
+ |
+ | MAD element test suites
+ |
+ | Methodical Accelerator Design - Copyright CERN 2016+
+ | Support: http://cern.ch/mad  - mad at cern.ch
+ | Authors: L. Deniau, laurent.deniau at cern.ch
+ | Contrib: J. Gray, joshua.mark.gray at cern.ch
+ |
+ o-----------------------------------------------------------------------------o
+ | You can redistribute this file and/or modify it under the terms of the GNU
+ | General Public License GPLv3 (or later), as published by the Free Software
+ | Foundation. This file is distributed in the hope that it will be useful, but
+ | WITHOUT ANY WARRANTY OF ANY KIND. See http://gnu.org/licenses for details.
+ o-----------------------------------------------------------------------------o
+
+  Purpose:
+  - Provide regression test suites for the MAD application
+
+ o-----------------------------------------------------------------------------o
+]=]
+
+-- modules --------------------------------------------------------------------o
+
+-- list of test suites (see src/madl_main.mad)
+local modules = {
+  "electric", "misc", "mult", "octupole", "patch", "quad", "rbend", "sbend",
+  "sextupole", "sol"
+}
+
+-- allow global access
+MAD.strict(false)
+
+-- load test suites
+for _,v in ipairs(modules) do
+  modules[v] = require("test-" .. v .. "-maps")
+end
+
+if MAD.env.arg[1] == "-test" then return end
+
+-- control display of custom objects during tests
+MAD:export('tostring', true)
+
+-- check for unexpected global access
+MAD.strict()
+
+-- run test suites
+local status = MAD.utest.LuaUnit.run()
+
+-- collect tests
+local testname = MAD.utest.LuaUnit.collectTests()
+
+-- build dict
+MAD.utility.setkeys(testname)
+
+-- check for unexpected globals
+MAD.checkglobal(testname)
+
+-- exit status, run finalizer
+os.exit( status, true )

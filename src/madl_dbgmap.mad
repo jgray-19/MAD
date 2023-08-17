@@ -133,9 +133,6 @@ end
 --   end
 -- end
 
-local name_patt = "%s*%f[%w_]([%a_][%w.$_]*)" -- madx identifier
-local nmdm_patt = "^" .. name_patt .. "%s+([%w_]+)(%:[01])"
-
 local ptc2mad = {
 -- DRIFTs
   DRIFT           = 'strex_drift',
@@ -146,9 +143,7 @@ local ptc2mad = {
   KICKT           = 'strex_kick', -- gmult (from frs)
   KICKEX          = 'strex_kick', -- rbend, quad, etc...
   -- variants
-  strex_kickh     = 'curex_kick',  -- mult with eh
-  strex_kicks     = 'curex_kick',  -- mult with ks
-
+  strex_kickhs    = 'strex_kick', -- eh and solenoid 
 -- FRINGEs
   FRNG_MULT       = 'mult_fringe',
   FRNG_STREX      = 'strex_fringe', -- rbend
@@ -157,8 +152,9 @@ local ptc2mad = {
   FRNG_DIPOLE     = 'bend_fringe',
   NEWFACE         = 'bend_face',
   EDGE            = 'bend_wedge',
+  WEDGE           = 'bend_wedge',
   MAD8_WEDGE      = 'mad8_wedge',
-  FRINGE2QUAD     = 'qsad_fringe',
+  FRNG_QUAD       = 'qsad_fringe',
   --              = 'dipeg_fringe', -- not in PTC
 
 -- BENDs
@@ -182,17 +178,25 @@ local ptc2mad = {
 
 -- CAVs
   KICKCAV         = 'rfcav_kick',
+  CAVITY          = 'rfcav_kick',
   FRINGECAV       = 'rfcav_fringe',
+  ADJTIME_CAV4    = 'rfcav_fringe', 
+  FRNG_CAV4       = 'cav_fringe',
+
   -- variants
   cav_fringe      = 'rfcav_fringe',
   rfcav_kickn     = 'rfcav_kick', -- rfmultipole
 
 -- SOLs
   KICK_SOL        = 'solen_thick',
+  KICKMUL         = "strex_kick",
+  GETMULB_SOL     = 'KICKMUL',
+  GETNEWB         = "KICKMUL",
   --              = 'solen_fringe', -- not in PTC
 
 -- OTHERs
-  SEP             = 'esept_thick',
+  SEP             = 'elsep_thick',
+  SEPTUM          = 'elsep_thick',
   --              = 'nllens_kick', -- not in PTC
 
 -- PATCHs
@@ -207,6 +211,9 @@ local ptc2mad = {
 -- MISALIGN
    --             = 'misalign',
 }
+
+local name_patt = "%s*%f[%w_\"]([%a_\"][%w.$_]*)" -- madx identifier
+local nmdm_patt = "^" .. name_patt .. "%s+([%w_]+)(%:[01])"
 
 local cvt_elm  = \e -> e:upper():find("^DRIFT__?%d+$") ~= nil and "DRIFT_" or e
 local cvt_map  = \m -> ptc2mad[m] or m
@@ -269,12 +276,17 @@ function M.cmpmdump (ctx_)
   local nam = ctx.nam or ""
   local ext = ctx.ext or {".txt", ".dat", ".out"}
   local eps = ctx.eps or 1e-14
+  local sav = ctx.sav or false
+  local sum = ctx.sum or false
+  local vec = ctx.vec or false
 
   local f_n = openfile(nam..mad, "r", ext)
   local f_p = openfile(nam..ptc, "r", ext)
-  local f_d = openfile(nam..dif, "w", ext)
+  local f_d = dif ~= "-" and openfile(nam..dif, "w", ext) or nil
 
   local fmt = option.numfmt ; option.numfmt = "% -.16e"
+
+  local n, lst = 0, {}
 
   while (true) do
     local elm_n, map_n, vec_n, mat_n = find_next(f_n)
@@ -290,28 +302,39 @@ function M.cmpmdump (ctx_)
       vec_p:print("V", 'line') ; mat_p:print("M")
     end
 
-    assert(elm_n == elm_p, "element in MAD-NG differs from MADX-PTC")
-    assert(map_n == map_p,     "map in MAD-NG differs from MADX-PTC")
+    assert(elm_n == elm_p or elm_p == '"',
+                          "element in MAD-NG differs from MADX-PTC")
+    assert(map_n == map_p,    "map in MAD-NG differs from MADX-PTC")
 
     local dam_n = dum:read(f_n)
     local dam_p = dum:read(f_p):fromptc()
 
-    f_d:write("elm='", elm_n, "', map='", map_n, "'\n")
+    local vec_d        = vec_n:dif(vec_p)
+    local mat_d        = mat_n:dif(mat_p)
+    local dam_d, sum_d = dam_n:dif(dam_p, sum)
 
-    local vec_d = vec_n:dif(vec_p)
-    local mat_d = mat_n:dif(mat_p)
-    local dam_d = dam_n:dif(dam_p)
+    if f_d then
+        f_d:write("elm='", elm_n, "', map='", map_n, "'\n")
+      vec_d:write(f_d, "Orbit diff", 'line')
+      mat_d:write(f_d, "LinMap diff")
+      dam_d:write(f_d, "FullMap diff", eps)
+    end
 
-    vec_d:write(f_d, "Orbit diff", 'line')
-    mat_d:write(f_d, "LinMap diff")
-    dam_d:write(f_d, "FullMap diff")
+    if sav or sum then
+      lst[n], n = {
+        elm = elm_n, map = map_n, serr = mat_n:symperr(),
+        diff = sav and dam_d, sum = sum and sum_d, vec = vec and vec_n
+      }, n+1
+    end
   end
 
   option.numfmt = fmt
 
   f_n:close()
   f_p:close()
-  f_d:close()
+  if f_d then f_d:close() end
+
+  return lst
 end
 
 --[[

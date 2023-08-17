@@ -26,7 +26,7 @@
          kick(elm, mflw, slw, stp_id)
           fsl(elm, mflw, slw, slc_id)
       where:
-        - slw is the slice (length) weight
+        - slw is the slice length weight to apply to the element length
         - stp_id the relative step number vs mid-step 0
         - slc_id the slice number
 
@@ -40,10 +40,13 @@
  o-----------------------------------------------------------------------------o
 ]=]
 
-local M = {DKD={}, TKT={}, MKM={}}
+local M = {DKD={}, TKT={}, KMK={}}
 
-local max in math
+local _C, vector             in MAD
 local is_number, is_function in MAD.typeid
+local tobit                  in MAD.gfunc
+local printf                 in MAD.utility
+local max, sqrt, ceil        in math
 
 -- Yoshida coefficients -------------------------------------------------------o
 
@@ -53,10 +56,18 @@ local function make_yoshida (w, nam)
   for i=1,n-1 do k[i] = w[n-i] ; s = s+w[i] end
   d[1], k[n] = k[1]/2, 1-2*s
   for i=2,n do d[i] = (k[i]+k[i-1])/2 end
-  -- local printf in MAD.utility
-  -- printf("%-5s ", nam)
-  -- for i=1,#d do printf("[%d]={% -.6f, % -.6f} ", i, d[i], k[i]) end
-  -- printf("\n")
+--[[
+  local vector in MAD
+  local printf in MAD.utility
+  local fmt = MAD.option.numfmt ; MAD.option.numfmt="% -.16e" !% -.16a"
+  printf("%-5s\n", nam)
+  for i=1,#d do printf("[%d]={% -.16e, % -.16e}\n", i, d[i], k[i]) end
+  local vd = vector(2*#d  ):setvec(d):rev():setvec(1..#d  ,d):print("D")
+  local vk = vector(2*#k-1):setvec(k):rev():setvec(1..#k-1,k):print("K")
+  printf("sum-1 = {% -.6e, % -.6e}\n", vd:ksum()-1,vk:ksum()-1)
+  printf("stdev = {% -.6f, % -.6f}\n", sqrt(vd:variance()), sqrt(vk:variance()))
+  MAD.option.numfmt = fmt
+--]]
   return d, k
 end
 
@@ -66,31 +77,32 @@ local yosh4_w = { -- 4th order (eq. 2.11)
 
 local yosh6_w = { -- 6th order (table1)
   A = { -0.117767998417887E1 ,  0.235573213359357E0 , 0.784513610477560E0 },
---  B = { -0.213228522200144E1 ,  0.426068187079180E-2, 0.143984816797678E1 },
---  C = {  0.152886228424922E-2, -0.214403531630539E1 , 0.144778256239930E1 },
+  B = { -0.213228522200144E1 ,  0.426068187079180E-2, 0.143984816797678E1 },
+  C = {  0.152886228424922E-2, -0.214403531630539E1 , 0.144778256239930E1 },
 }
 
 local yosh8_w = { -- 8th order (table2)
---  A = { -0.161582374150097E1 , -0.244699182370524E1, -0.716989419708120E-2,
---         0.244002732616735E1 ,  0.157739928123617E0,  0.182020630970714E1 ,
---         0.104242620869991E1 },
---  B = { -0.169248587770116E-2,  0.289195744315849E1,  0.378039588360192E-2,
---        -0.289688250328827E1 ,  0.289105148970595E1, -0.233864815101035E1 ,
---         0.148819229202922E1 },
---  C = {  0.311790812418427E0 , -0.155946803821447E1, -0.167896928259640E1 ,
---         0.166335809963315E1 , -0.106458714789183E1,  0.136934946416871E1 ,
---         0.629030650210433E0 },
+  A = { -0.161582374150097E1 , -0.244699182370524E1, -0.716989419708120E-2,
+         0.244002732616735E1 ,  0.157739928123617E0,  0.182020630970714E1 ,
+         0.104242620869991E1 },
+  B = { -0.169248587770116E-2,  0.289195744315849E1,  0.378039588360192E-2,
+        -0.289688250328827E1 ,  0.289105148970595E1, -0.233864815101035E1 ,
+         0.148819229202922E1 },
+  C = {  0.311790812418427E0 , -0.155946803821447E1, -0.167896928259640E1 ,
+         0.166335809963315E1 , -0.106458714789183E1,  0.136934946416871E1 ,
+         0.629030650210433E0 },
   D = {  0.102799849391985E0 , -0.196061023297549E1,  0.193813913762276E1 ,
         -0.158240635368243E0 , -0.144485223686048E1,  0.253693336566229E0 ,
          0.914844246229740E0 },
---  E = {  0.227738840094906E-1,  0.252778927322839E1, -0.719180053552772E-1,
---         0.536018921307285E-2, -0.204809795887393E1,  0.107990467703699E0 ,
---         0.130300165760014E1 },
+  E = {  0.227738840094906E-1,  0.252778927322839E1, -0.719180053552772E-1,
+         0.536018921307285E-2, -0.204809795887393E1,  0.107990467703699E0 ,
+         0.130300165760014E1 },
 }
 
-local yosh4_d, yosh4_k = make_yoshida(yosh4_w.A, 'A4')
-local yosh6_d, yosh6_k = make_yoshida(yosh6_w.A, 'A6')
-local yosh8_d, yosh8_k = make_yoshida(yosh8_w.D, 'D8')
+local yosh2_n, yosh2_d, yosh2_k = 1, {0.5}, {1}
+local yosh4_n, yosh4_d, yosh4_k = 2, make_yoshida(yosh4_w.A, 'A4')
+local yosh6_n, yosh6_d, yosh6_k = 4, make_yoshida(yosh6_w.A, 'A6')
+local yosh8_n, yosh8_d, yosh8_k = 8, make_yoshida(yosh8_w.D, 'D8')
 
 --[[
 local n, s
@@ -123,6 +135,38 @@ end
 print("sum8=", s)
 --]]
 
+-- debug ----------------------------------------------------------------------o
+
+local assertf in MAD.utility
+
+local function chckflw (e, m, skip)
+  if m.debug < 4 or not m.cmap or m.pmap then return end
+
+  local str = e.name .. " (" .. e.kind .. ") inconsistent %s %g ~= %g"
+
+  local c, eld = m.cflw, m.eld or 0
+  assertf(m.el   == c.el  , str, "el  ", m.el  , c.el  )
+  assertf(  eld  == c.eld , str, "eld ",   eld , c.eld )
+  assertf(m.elc  == c.elc , str, "elc ", m.elc , c.elc )
+  assertf(m.lrad == c.lrad, str, "lrad", m.lrad, c.lrad)
+  assertf(m.eh   == c.eh  , str, "eh  ", m.eh  , c.eh  )
+  assertf(m.ang  == c.ang , str, "ang ", m.ang , c.ang )
+  assertf(m.ks   == c.ks  , str, "ks  ", m.ks  , c.ks  )
+  assertf(m.k1   == c.k1  , str, "k1  ", m.k1  , c.k1  )
+  assertf(m.ca   == c.ca  , str, "ca  ", m.ca  , c.ca  )
+  assertf(m.sa   == c.sa  , str, "sa  ", m.sa  , c.sa  )
+  assertf(m.nmul == c.nmul, str, "nmul", m.nmul, c.nmul)
+  assertf(m.snm  == c.snm , str, "snm ", m.snm , c.snm )
+  assertf(m.npar == c.npar, str, "npar", m.npar, c.npar)
+  if not skip then
+  assertf(m.tlt  == c.tlt , str, "tlt ", m.tlt , c.tlt )
+  end
+
+  for i=1,m.npar do
+    assertf(m[i].__ta == c.par[i-1], str, "tpsa", i, i-1)
+  end
+end
+
 -- helper ---------------------------------------------------------------------o
 
 local function get_slc (elm, mflw, lw)
@@ -132,14 +176,13 @@ local function get_slc (elm, mflw, lw)
     slc = slc(elm, mflw, lw)
   end
 
+  local sdir in mflw
   if is_number(slc) then
-    local nsl = max(slc, mflw.nslc)
-    mflw.nsl = nsl
-    return nsl, lw/nsl
+    local nsl = max(slc, mflw.nslc) ; mflw.nsl = nsl
+    return nsl, lw/nsl, nil, nil, sdir
   else
-    local nsl, dir = #slc, mflw.sdir
-    mflw.nsl = nsl
-    return nsl, nil, slc, dir > 0 and 0 or nsl+1, dir
+    local nsl = #slc ; mflw.nsl = nsl
+    return nsl, nil, slc, sdir > 0 and 0 or nsl+1, sdir
   end
 end
 
@@ -147,35 +190,53 @@ M.get_slicing = get_slc
 
 -- single step integrators ----------------------------------------------------o
 
-local function thinonly (elm, mflw, lw, _, thin)
+local function thinonly (elm, mflw, lw, kick)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
   mflw.nsl = 1
 
-  -- 1 thin
-   fsl(elm, mflw, 0 , 0)
-  thin(elm, mflw, lw, 0) ; mflw.clw = mflw.clw + lw
-   fsl(elm, mflw, lw, 1)
+  chckflw(elm, mflw, true)
+
+  -- 1 kick
+     fsl(elm, mflw, 0 , 0)
+  if cmap then
+    _C.mad_trk_slice_one(mflw.cflw_, lw, kick)
+  else
+    kick(elm, mflw, lw) end mflw.clw = mflw.clw + lw
+     fsl(elm, mflw, lw, 1)
 end
 
-local function driftonly (elm, mflw, lw, thick, _)
+local function driftonly (elm, mflw, lw, thick)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
   mflw.nsl = 1
+
+  chckflw(elm, mflw, true)
 
   -- 1 thick
-    fsl(elm, mflw, 0 , 0)
-  thick(elm, mflw, lw, 0) ; mflw.clw = mflw.clw + lw
-    fsl(elm, mflw, lw, 1)
+      fsl(elm, mflw, 0 , 0)
+  if cmap then
+    _C.mad_trk_slice_one(mflw.cflw_, lw, thick)
+  else
+    thick(elm, mflw, lw) end mflw.clw = mflw.clw + lw
+      fsl(elm, mflw, lw, 1)
 end
 
-local function thickonly (elm, mflw, lw, thick, _)
+local function thickonly (elm, mflw, lw, thick)
   local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
+
+  chckflw(elm, mflw, true)
 
   -- nsl*(1 thick)
       fsl(elm, mflw, 0, 0)
   for i=1,nsl do
     local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
-    thick(elm, mflw, lwi, 0)
+  if cmap then
+    _C.mad_trk_slice_one(mflw.cflw_, lwi, thick)
+  else
+    thick(elm, mflw, lwi) end
       fsl(elm, mflw, lwi, i)
   end
 end
@@ -183,26 +244,92 @@ end
 -- DKD special integrators ----------------------------------------------------o
 
 -- 2nd order: [Burkhardt13] table 1, p. 946
-local function teapot (elm, mflw, lw, thick, kick)
-  local nsl = max(2, elm.nslice or mflw.nslice)
-  local lwn = lw/nsl
-  local lwd = lw/(2*(nsl+1))
-  local lwD = lw*nsl/(nsl^2-1)/2
-  local fsl = mflw.atslice
-  mflw.nsl = nsl
+-- n   |           |  2  |  3  |  4   |
+-- lwd | 0.5/(n+1) | 1/6 | 1/8 | 3/30 |
+-- lwD | n/(n^2-1) | 4/6 | 3/8 | 8/30 |
 
- -- nsl*(1 kick + 2 thicks)
-     fsl(elm, mflw, 0  ,  0)
-   thick(elm, mflw, lwd, -1)
- for i=1,nsl-1 do
-    kick(elm, mflw, lwn,  0)
-   thick(elm, mflw, lwD,  0) ; mflw.clw = mflw.clw + lwn
-     fsl(elm, mflw, lwn,  i)
-   thick(elm, mflw, lwD,  0)
- end
-    kick(elm, mflw, lwn,  0)
-   thick(elm, mflw, lwd,  1) ; mflw.clw = mflw.clw + lwn
-     fsl(elm, mflw, lwn, nsl)
+local teapot2_d, teapot2_D, teapot2_k = 1/6, 4/6, 1/2
+
+local function teapot2 (elm, mflw, lw, thick, kick)
+  local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
+  local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
+
+ -- nsl*(2 kick + 3 thicks)
+      fsl(elm, mflw, 0, 0)
+  for i=1,nsl do
+    local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
+    if cmap then
+      _C.mad_trk_slice_tpt(mflw.cflw_, lwi, thick, kick, 2)
+    else
+    thick(elm, mflw, lwi * teapot2_d, -2)
+     kick(elm, mflw, lwi * teapot2_k, -1)
+    thick(elm, mflw, lwi * teapot2_D,  0) -- middle
+     kick(elm, mflw, lwi * teapot2_k,  1)
+    thick(elm, mflw, lwi * teapot2_d,  2)
+    end
+      fsl(elm, mflw, lwi, i)
+  end
+end
+
+local teapot3_d, teapot3_D, teapot3_k = 1/8, 3/8, 1/3
+
+local function teapot3 (elm, mflw, lw, thick, kick)
+  local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
+  local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
+
+ -- nsl*(3 kick + 4 thicks)
+      fsl(elm, mflw, 0, 0)
+  for i=1,nsl do
+    local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
+    if cmap then
+      _C.mad_trk_slice_tpt(mflw.cflw_, lwi, thick, kick, 3)
+    else
+    thick(elm, mflw, lwi * teapot3_d, -3)
+     kick(elm, mflw, lwi * teapot3_k, -2)
+    thick(elm, mflw, lwi * teapot3_D, -1)
+     kick(elm, mflw, lwi * teapot3_k,  0) -- middle
+    thick(elm, mflw, lwi * teapot3_D,  1)
+     kick(elm, mflw, lwi * teapot3_k,  2)
+    thick(elm, mflw, lwi * teapot3_d,  3)
+    end
+      fsl(elm, mflw, lwi, i)
+  end
+end
+
+local teapot4_d, teapot4_D, teapot4_k = 3/30, 8/30, 1/4
+
+local function teapot4 (elm, mflw, lw, thick, kick)
+  local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
+  local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
+
+ -- nsl*(4 kick + 5 thicks)
+      fsl(elm, mflw, 0, 0)
+  for i=1,nsl do
+    local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
+    if cmap then
+      _C.mad_trk_slice_tpt(mflw.cflw_, lwi, thick, kick, 4)
+    else
+    thick(elm, mflw, lwi * teapot4_d, -4)
+     kick(elm, mflw, lwi * teapot4_k, -3)
+    thick(elm, mflw, lwi * teapot4_D, -2)
+     kick(elm, mflw, lwi * teapot4_k, -1) -- middle
+    thick(elm, mflw, lwi * teapot4_D,  0)
+     kick(elm, mflw, lwi * teapot4_k,  1) -- middle
+    thick(elm, mflw, lwi * teapot4_D,  2)
+     kick(elm, mflw, lwi * teapot4_k,  3)
+    thick(elm, mflw, lwi * teapot4_d,  4)
+    end
+      fsl(elm, mflw, lwi, i)
+  end
 end
 
 -- DKD integrators [Yoshida90] ------------------------------------------------o
@@ -210,15 +337,22 @@ end
 -- 2nd order: [Yoshida90] eq. 2.10, p. 263
 local function DKD2 (elm, mflw, lw, thick, kick)
   local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
 
   -- nsl*(1 kick + 2 thicks)
       fsl(elm, mflw, 0, 0)
   for i=1,nsl do
     local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
-    thick(elm, mflw, lwi*0.5, -1)
-     kick(elm, mflw, lwi    ,  0) -- middle
-    thick(elm, mflw, lwi*0.5,  1)
+    if cmap then
+      _C.mad_trk_slice_dkd(mflw.cflw_, lwi, thick, kick, 2)
+    else
+    thick(elm, mflw, lwi*yosh2_d[1], -1) -- 1
+     kick(elm, mflw, lwi*yosh2_k[1],  0) -- middle
+    thick(elm, mflw, lwi*yosh2_d[1],  1)
+    end
       fsl(elm, mflw, lwi, i)
   end
 end
@@ -226,19 +360,26 @@ end
 -- 4th order: [Yoshida90] eq. 2.11, p. 263
 local function DKD4 (elm, mflw, lw, thick, kick)
   local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
 
   -- nsl*(3 kicks + 4 thicks) ; k=4
       fsl(elm, mflw, 0, 0)
   for i=1,nsl do
     local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
-    thick(elm, mflw, lwi * yosh4_d[1], -3)
+    if cmap then
+      _C.mad_trk_slice_dkd(mflw.cflw_, lwi, thick, kick, 4)
+    else
+    thick(elm, mflw, lwi * yosh4_d[1], -3) -- 2
      kick(elm, mflw, lwi * yosh4_k[1], -2)
-    thick(elm, mflw, lwi * yosh4_d[2], -1)
+    thick(elm, mflw, lwi * yosh4_d[2], -1) -- 1
      kick(elm, mflw, lwi * yosh4_k[2],  0) -- middle
     thick(elm, mflw, lwi * yosh4_d[2],  1)
      kick(elm, mflw, lwi * yosh4_k[1],  2)
     thick(elm, mflw, lwi * yosh4_d[1],  3)
+    end
       fsl(elm, mflw, lwi, i)
   end
 end
@@ -246,19 +387,25 @@ end
 -- 6th order: [Yoshida90] table 1, p. 267
 local function DKD6 (elm, mflw, lw, thick, kick)
   local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
 
   -- nsl*(7 kicks + 8 thicks) ; k=8
       fsl(elm, mflw, 0, 0)
   for i=1,nsl do
     local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
-    thick(elm, mflw, lwi * yosh6_d[1], -7)
+    if cmap then
+      _C.mad_trk_slice_dkd(mflw.cflw_, lwi, thick, kick, 6)
+    else
+    thick(elm, mflw, lwi * yosh6_d[1], -7) -- 4
      kick(elm, mflw, lwi * yosh6_k[1], -6)
-    thick(elm, mflw, lwi * yosh6_d[2], -5)
+    thick(elm, mflw, lwi * yosh6_d[2], -5) -- 3
      kick(elm, mflw, lwi * yosh6_k[2], -4)
-    thick(elm, mflw, lwi * yosh6_d[3], -3)
+    thick(elm, mflw, lwi * yosh6_d[3], -3) -- 2
      kick(elm, mflw, lwi * yosh6_k[3], -2)
-    thick(elm, mflw, lwi * yosh6_d[4], -1)
+    thick(elm, mflw, lwi * yosh6_d[4], -1) -- 1
      kick(elm, mflw, lwi * yosh6_k[4],  0) -- middle
     thick(elm, mflw, lwi * yosh6_d[4],  1)
      kick(elm, mflw, lwi * yosh6_k[3],  2)
@@ -267,6 +414,7 @@ local function DKD6 (elm, mflw, lw, thick, kick)
     thick(elm, mflw, lwi * yosh6_d[2],  5)
      kick(elm, mflw, lwi * yosh6_k[1],  6)
     thick(elm, mflw, lwi * yosh6_d[1],  7)
+    end
       fsl(elm, mflw, lwi , i)
   end
 end
@@ -274,27 +422,33 @@ end
 -- 8th order: [Yoshida90] table 2, p. 267
 local function DKD8 (elm, mflw, lw, thick, kick)
   local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
 
   -- nsl*(15 kicks + 16 thicks) ; k=16
       fsl(elm, mflw, 0, 0)
   for i=1,nsl do
     local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
-    thick(elm, mflw, lwi * yosh8_d[1], -15)
+    if cmap then
+      _C.mad_trk_slice_dkd(mflw.cflw_, lwi, thick, kick, 8)
+    else
+    thick(elm, mflw, lwi * yosh8_d[1], -15) -- 8
      kick(elm, mflw, lwi * yosh8_k[1], -14)
-    thick(elm, mflw, lwi * yosh8_d[2], -13)
+    thick(elm, mflw, lwi * yosh8_d[2], -13) -- 7
      kick(elm, mflw, lwi * yosh8_k[2], -12)
-    thick(elm, mflw, lwi * yosh8_d[3], -11)
+    thick(elm, mflw, lwi * yosh8_d[3], -11) -- 6
      kick(elm, mflw, lwi * yosh8_k[3], -10)
-    thick(elm, mflw, lwi * yosh8_d[4], - 9)
-     kick(elm, mflw, lwi * yosh8_k[4], - 8)
-    thick(elm, mflw, lwi * yosh8_d[5], - 7)
-     kick(elm, mflw, lwi * yosh8_k[5], - 6)
-    thick(elm, mflw, lwi * yosh8_d[6], - 5)
-     kick(elm, mflw, lwi * yosh8_k[6], - 4)
-    thick(elm, mflw, lwi * yosh8_d[7], - 3)
-     kick(elm, mflw, lwi * yosh8_k[7], - 2)
-    thick(elm, mflw, lwi * yosh8_d[8], - 1)
+    thick(elm, mflw, lwi * yosh8_d[4],  -9) -- 5
+     kick(elm, mflw, lwi * yosh8_k[4],  -8)
+    thick(elm, mflw, lwi * yosh8_d[5],  -7) -- 4
+     kick(elm, mflw, lwi * yosh8_k[5],  -6)
+    thick(elm, mflw, lwi * yosh8_d[6],  -5) -- 3
+     kick(elm, mflw, lwi * yosh8_k[6],  -4)
+    thick(elm, mflw, lwi * yosh8_d[7],  -3) -- 2
+     kick(elm, mflw, lwi * yosh8_k[7],  -2)
+    thick(elm, mflw, lwi * yosh8_d[8],  -1) -- 1
      kick(elm, mflw, lwi * yosh8_k[8],   0) -- middle
     thick(elm, mflw, lwi * yosh8_d[8],   1)
      kick(elm, mflw, lwi * yosh8_k[7],   2)
@@ -311,84 +465,121 @@ local function DKD8 (elm, mflw, lw, thick, kick)
     thick(elm, mflw, lwi * yosh8_d[2],  13)
      kick(elm, mflw, lwi * yosh8_k[1],  14)
     thick(elm, mflw, lwi * yosh8_d[1],  15)
+    end
       fsl(elm, mflw, lwi , i)
   end
 end
 
--- MKM integrators (Biased) [Boole's rule] ------------------------------------o
+-- KMK integrators (Biased) [Boole's rule] ------------------------------------o
 
 -- 2nd order: [Abramowitz72] p885 25.4.2
-local function MKM2 (elm, mflw, lw, thick, kick)
+local boole2_n = 1
+local boole2_d = 1
+local boole2_k = {1/2}
+
+local function KMK2 (elm, mflw, lw, thick, kick)
   local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
 
   -- nsl*(2 kicks + 1 thick)
       fsl(elm, mflw, 0, 0)
   for i=1,nsl do
     local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
-     kick(elm, mflw, lwi*0.5, -1)
-    thick(elm, mflw, lwi    ,  0) -- (no) middle
-     kick(elm, mflw, lwi*0.5,  1)
+    if cmap then
+      _C.mad_trk_slice_kmk(mflw.cflw_, lwi, thick, kick, 2)
+    else
+     kick(elm, mflw, lwi * boole2_k[1], -1)
+    thick(elm, mflw, lwi * boole2_d   ,  0) -- (no) middle
+     kick(elm, mflw, lwi * boole2_k[1],  1)
+    end
       fsl(elm, mflw, lwi, i)
   end
 end
 
 -- 4th order: [Abramowitz72] p886 25.4.5
+local boole4_n = 2
+local boole4_d = 1/2
 local boole4_k = {1/6, 4/6}
 
-local function MKM4 (elm, mflw, lw, thick, kick)
+local function KMK4 (elm, mflw, lw, thick, kick)
   local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
 
   -- nsl*(3 kicks + 2 thicks)
       fsl(elm, mflw, 0, 0)
   for i=1,nsl do
     local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
+    if cmap then
+      _C.mad_trk_slice_kmk(mflw.cflw_, lwi, thick, kick, 4)
+    else
      kick(elm, mflw, lwi * boole4_k[1], -2)
-    thick(elm, mflw, lwi * 0.5        , -1)
+    thick(elm, mflw, lwi * boole4_d   , -1)
      kick(elm, mflw, lwi * boole4_k[2],  0) -- middle
-    thick(elm, mflw, lwi * 0.5        ,  1)
+    thick(elm, mflw, lwi * boole4_d   ,  1)
      kick(elm, mflw, lwi * boole4_k[1],  2)
+    end
       fsl(elm, mflw, lwi, i)
   end
 end
 
 -- 6th order: [Abramowitz72] p886 25.4.14
+local boole6_n = 3
+local boole6_d = 1/4
 local boole6_k = {7/90, 32/90, 12/90}
 
-local function MKM6 (elm, mflw, lw, thick, kick)
+local function KMK6 (elm, mflw, lw, thick, kick)
   local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
 
   -- nsl*(5 kicks + 4 thicks)
       fsl(elm, mflw, 0, 0)
   for i=1,nsl do
     local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
+    if cmap then
+      _C.mad_trk_slice_kmk(mflw.cflw_, lwi, thick, kick, 6)
+    else
      kick(elm, mflw, lwi * boole6_k[1], -4)
-    thick(elm, mflw, lwi * 0.25       , -3)
+    thick(elm, mflw, lwi * boole6_d   , -3)
      kick(elm, mflw, lwi * boole6_k[2], -2)
-    thick(elm, mflw, lwi * 0.25       , -1)
+    thick(elm, mflw, lwi * boole6_d   , -1)
      kick(elm, mflw, lwi * boole6_k[3],  0) -- middle
-    thick(elm, mflw, lwi * 0.25       ,  1)
+    thick(elm, mflw, lwi * boole6_d   ,  1)
      kick(elm, mflw, lwi * boole6_k[2],  2)
-    thick(elm, mflw, lwi * 0.25       ,  3)
+    thick(elm, mflw, lwi * boole6_d   ,  3)
      kick(elm, mflw, lwi * boole6_k[1],  4)
+    end
       fsl(elm, mflw, lwi, i)
   end
 end
 
 -- 8th order: [Abramowitz72] p886 25.4.16
-local boole8_k = {41/840, 216/840, 27/840, 272/840}
+local boole8_n = 4
 local boole8_d = 1/6
+local boole8_k = {41/840, 216/840, 27/840, 272/840}
 
-local function MKM8 (elm, mflw, lw, thick, kick)
+local function KMK8 (elm, mflw, lw, thick, kick)
   local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
   local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
 
   -- nsl*(7 kicks + 6 thicks)
       fsl(elm, mflw, 0, 0)
   for i=1,nsl do
     local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
+    if cmap then
+      _C.mad_trk_slice_kmk(mflw.cflw_, lwi, thick, kick, 8)
+    else
      kick(elm, mflw, lwi * boole8_k[1], -6)
     thick(elm, mflw, lwi * boole8_d   , -5)
      kick(elm, mflw, lwi * boole8_k[2], -4)
@@ -402,6 +593,94 @@ local function MKM8 (elm, mflw, lw, thick, kick)
      kick(elm, mflw, lwi * boole8_k[2],  4)
     thick(elm, mflw, lwi * boole8_d   ,  5)
      kick(elm, mflw, lwi * boole8_k[1],  6)
+    end
+      fsl(elm, mflw, lwi, i)
+  end
+end
+
+-- 10th order: [Abramowitz72] p886 25.4.18
+local boole10_n = 5
+local boole10_d = 1/8
+local boole10_k = {989/28350, 5888/28350, -928/28350, 10496/28350, -4540/28350}
+
+local function KMK10 (elm, mflw, lw, thick, kick)
+  local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
+  local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
+
+  -- nsl*(9 kicks + 7 thicks)
+      fsl(elm, mflw, 0, 0)
+  for i=1,nsl do
+    local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
+    if cmap then
+      _C.mad_trk_slice_kmk(mflw.cflw_, lwi, thick, kick, 10)
+    else
+     kick(elm, mflw, lwi * boole10_k[1], -8)
+    thick(elm, mflw, lwi * boole10_d   , -7)
+     kick(elm, mflw, lwi * boole10_k[2], -6)
+    thick(elm, mflw, lwi * boole10_d   , -5)
+     kick(elm, mflw, lwi * boole10_k[3], -4)
+    thick(elm, mflw, lwi * boole10_d   , -3)
+     kick(elm, mflw, lwi * boole10_k[4], -2)
+    thick(elm, mflw, lwi * boole10_d   , -1)
+     kick(elm, mflw, lwi * boole10_k[5],  0) -- middle
+    thick(elm, mflw, lwi * boole10_d   ,  1)
+     kick(elm, mflw, lwi * boole10_k[4],  2)
+    thick(elm, mflw, lwi * boole10_d   ,  3)
+     kick(elm, mflw, lwi * boole10_k[3],  4)
+    thick(elm, mflw, lwi * boole10_d   ,  5)
+     kick(elm, mflw, lwi * boole10_k[2],  6)
+    thick(elm, mflw, lwi * boole10_d   ,  7)
+     kick(elm, mflw, lwi * boole10_k[1],  8)
+    end
+      fsl(elm, mflw, lwi, i)
+  end
+end
+
+-- 12th order: [Abramowitz72] p887 25.4.20
+local boole12_n = 6
+local boole12_d = 1/10
+local boole12_k = { 16067/598752,  106300/598752, -48525/598752,
+                   272400/598752, -260550/598752, 427368/598752}
+
+local function KMK12 (elm, mflw, lw, thick, kick)
+  local nsl, lwn, slc, sln, dir = get_slc(elm, mflw, lw)
+  local cmap = mflw.cmap and not mflw.pmap
+  local fsl = mflw.atslice
+
+  chckflw(elm, mflw)
+
+  -- nsl*(11 kicks + 9 thicks)
+      fsl(elm, mflw, 0, 0)
+  for i=1,nsl do
+    local lwi = lwn or lw*slc[sln+i*dir] ; mflw.clw = mflw.clw + lwi
+    if cmap then
+      _C.mad_trk_slice_kmk(mflw.cflw_, lwi, thick, kick, 12)
+    else
+     kick(elm, mflw, lwi * boole12_k[1], -10)
+    thick(elm, mflw, lwi * boole12_d   ,  -9)
+     kick(elm, mflw, lwi * boole12_k[2],  -8)
+    thick(elm, mflw, lwi * boole12_d   ,  -7)
+     kick(elm, mflw, lwi * boole12_k[3],  -6)
+    thick(elm, mflw, lwi * boole12_d   ,  -5)
+     kick(elm, mflw, lwi * boole12_k[4],  -4)
+    thick(elm, mflw, lwi * boole12_d   ,  -3)
+     kick(elm, mflw, lwi * boole12_k[5],  -2)
+    thick(elm, mflw, lwi * boole12_d   ,  -1)
+     kick(elm, mflw, lwi * boole12_k[6],   0) -- middle
+    thick(elm, mflw, lwi * boole12_d   ,   1)
+     kick(elm, mflw, lwi * boole12_k[5],   2)
+    thick(elm, mflw, lwi * boole12_d   ,   3)
+     kick(elm, mflw, lwi * boole12_k[4],   4)
+    thick(elm, mflw, lwi * boole12_d   ,   5)
+     kick(elm, mflw, lwi * boole12_k[3],   6)
+    thick(elm, mflw, lwi * boole12_d   ,   7)
+     kick(elm, mflw, lwi * boole12_k[2],   8)
+    thick(elm, mflw, lwi * boole12_d   ,   9)
+     kick(elm, mflw, lwi * boole12_k[1],  10)
+    end
       fsl(elm, mflw, lwi, i)
   end
 end
@@ -412,19 +691,30 @@ end
 
 -- integrators by names -------------------------------------------------------o
 
-M.thinonly  = thinonly
-M.driftonly = driftonly
-M.thickonly = thickonly
+M.thinonly    = thinonly
+M.driftonly   = driftonly
+M.thickonly   = thickonly
 
 -- 2nd order integrator scheme
-M.DKD.simple   = DKD2
-M.DKD.collim   = MKM2
-M.DKD.teapot   = teapot
+M.DKD.simple  = DKD2
+M.DKD.collim  = KMK2
+M.DKD.teapot2 = teapot2
+M.DKD.teapot3 = teapot3
+M.DKD.teapot4 = teapot4
 
 -- 2nd order integrator scheme
-M.TKT.simple   = DKD2           -- for PTC compatibility...
-M.TKT.collim   = MKM2
-M.TKT.teapot   = teapot
+M.TKT.simple  = DKD2           -- for MADX compatibility...
+M.TKT.collim  = KMK2
+M.TKT.teapot2 = teapot2
+M.TKT.teapot3 = teapot3
+M.TKT.teapot4 = teapot4
+
+-- 2nd order integrator scheme
+M.KMK.simple  = DKD2           -- for MADX compatibility...
+M.KMK.collim  = KMK2
+M.KMK.teapot2 = teapot2
+M.KMK.teapot3 = teapot3
+M.KMK.teapot4 = teapot4
 
 -- integrators by order -------------------------------------------------------o
 
@@ -434,35 +724,82 @@ M.DKD[3], M.DKD[4] = DKD4, DKD4
 M.DKD[5], M.DKD[6] = DKD6, DKD6
 M.DKD[7], M.DKD[8] = DKD8, DKD8
 
--- TKT is mainly a map choice, not an integrator scheme
+-- TKT is mainly a map choice, use Yoshida scheme as DKD
 M.TKT[1], M.TKT[2] = DKD2, DKD2
 M.TKT[3], M.TKT[4] = DKD4, DKD4
 M.TKT[5], M.TKT[6] = DKD6, DKD6
 M.TKT[7], M.TKT[8] = DKD8, DKD8
 
--- MKM is a TKT integrator scheme for 2nd order thick maps (QUAD, SEP)
-M.MKM[1], M.MKM[2] = DKD2, DKD2 -- for PTC compatibility...
-M.MKM[3], M.MKM[4] = MKM4, MKM4
-M.MKM[5], M.MKM[6] = MKM6, MKM6
-M.MKM[7], M.MKM[8] = MKM8, MKM8
+-- KMK is a scheme for 2nd order thick maps (QUAD, SEP)
+M.KMK[ 1], M.KMK[ 2] = KMK2 , KMK2
+M.KMK[ 3], M.KMK[ 4] = KMK4 , KMK4
+M.KMK[ 5], M.KMK[ 6] = KMK6 , KMK6
+M.KMK[ 7], M.KMK[ 8] = KMK8 , KMK8
+M.KMK[ 9], M.KMK[10] = KMK10, KMK10
+M.KMK[11], M.KMK[12] = KMK12, KMK12
 
 -- slices selectors -----------------------------------------------------------o
 
-M.atall   = \_,_,_,_ -> true
+local atbody -- fwd decl
 
-M.atentry = \_,_,_,i -> i == -1
-M.atbegin = \_,_,_,i -> i ==  0
-M.atbody  = \_,_,_,i -> i >   0
-M.atbound = \_,m,_,i -> i ==  0 or  i == m.nsl
-M.atend   = \_,m,_,i ->             i == m.nsl
-M.atexit  = \_,_,_,i -> i == -2
+M.slcsel = {                                                                 -- bits
+  -- single slice
+  atentry  = \_,_,_,i -> i == -1,               -- entry                        [1]
+  atbegin  = \_,_,_,i -> i == -3,               -- beginning                    [1]
+  atfirst  = \_,_,_,i -> i ==  0,               -- slice 0                      [4]
+  atmid    = \_,m,_,i -> i ==  ceil(m.nsl/2),   -- slice mid                    [4]
+  atlast   = \_,m,_,i -> i ==  m.nsl,           -- slice nsl                    [4]
+  atend    = \_,_,_,i -> i == -4,               -- ending                       [2]
+  atexit   = \_,_,_,i -> i == -2,               -- exit                         [2]
 
-M.atmid   = \_,m,_,i ->           2*i == m.nsl
-M.atmid1  = \_,m,_,i ->           2*i == m.nsl or i == 1 and i == m.nsl
-M.atins   = \_,m,_,i -> i >   0 and i <  m.nsl
-M.atins1  = \_,m,_,i -> i >   0 and i <  m.nsl or i == 1 and i == m.nsl
-M.atstd   = \_,m,_,i -> i >   0 and i <  m.nsl or                          i == -2
-M.atstd1  = \_,m,_,i -> i >   0 and i <  m.nsl or i == 1 and i == m.nsl or i == -2
+  -- multiple slices
+  atentex  = \_,_,_,i -> i <  0,                -- entry, exit                  [3]
+  atslice  = \_,_,_,i -> i >= 0,                -- slices 0..nsl                [4]
+  atcore   = \_,m,_,i -> i >  0 and i <  m.nsl, -- slices 1..nsl-1              [4]
+  atbody   = \_,m,_,i -> i >  0 and i <  m.nsl or i == 1 and i == m.nsl, --     [4]
+  atborder = \_,m,_,i -> i == 0 or  i == m.nsl, -- slices 0, nsl                [4]
+
+  -- composed slices (further compositions can be built with ochain and achain)
+  atfront  = \_,_,_,i -> i%2 == 1,                         --       entry+begin [1]
+  atback   = \_,_,_,i -> i%2 == 0,                         --          end+exit [2]
+  atfull   = \_,_,_,i -> i >= 0                or i == -2, --       slice +exit [6]
+  atstd    = \_,m,_,i -> i >  0 and i <  m.nsl or i == -2, --       core  +exit [6]
+  atstd1   = \_,m,_,i -> atbody(nil,m,nil,i)   or i == -2, --       body  +exit [6]
+  atbound  = \_,m,_,i -> i <= 0 or  i == m.nsl,            --      border+entex [7]
+  atsample = \_,m,_,i -> i <= 0 or  i == m.nsl or i == ceil(m.nsl/2), --        [7]
+                                                           --  mid+border+entex
+  -- special cases
+  atall    = \_,_,_,_ -> true,                             --       slice+entex [7]
+  atnone   = \_,_,_,_ -> false,                            --                   [0]
+}
+
+-- same as atcore but ensure one slice in the body for nsl == 1
+atbody = M.slcsel.atbody
+
+-- function returning bit patterns for a given selector
+local function getslcbit (sel)
+  local b, m = 0, {nsl=2}
+  if sel(nil, m, nil, -1) or
+     sel(nil, m, nil, -3) then b = b+1 end -- entry
+  if sel(nil, m, nil, -2) or
+     sel(nil, m, nil, -4) then b = b+2 end -- exit
+  if sel(nil, m, nil,  0) or
+     sel(nil, m, nil,  1) or
+     sel(nil, m, nil,  2) then b = b+4 end -- slices
+  return tobit(b)
+end
+
+-- build bit patterns of slice selectors
+local slcbit = {}
+for nam, sel in pairs(M.slcsel) do
+  slcbit[nam] = getslcbit(sel)
+  -- print(nam, slcbit[nam])
+end
+
+slcbit[true ] = slcbit.atall
+slcbit[false] = slcbit.atnone
+
+M.slcbit, M.getslcbit = slcbit, getslcbit
 
 -- actions selectors ----------------------------------------------------------o
 

@@ -323,6 +323,7 @@ local function cofind_map (self, mflw)
 
     -- update the number of damap to track
     mflw.npar = n
+    mflw:cmap_sync()
 
     -- all damaps have been processed
     if n == 0 then break end
@@ -389,17 +390,21 @@ local cofind = command 'cofind' {
   mapdef=true,       -- setup for damap (or list of, true => {})          (trck)
   method=nil,        -- method or order for integration (1 to 8)          (trck)
   model=nil,         -- model for integration ('DKD' or 'TKT')            (trck)
+  secnmul=nil,       -- maximun number of curved multipoles for bends     (trck)
   ptcmodel=nil,      -- use strict PTC thick model (override option)      (trck)
   implicit=nil,      -- slice implicit elements too (e.g. plots)          (trck)
   misalign=nil,      -- consider misalignment                             (trck)
+  aperture=nil,      -- default aperture                                  (trck)
   fringe=nil,        -- enable fringe fields (see element.flags.fringe)   (trck)
+  frngmax=nil,       -- maximum multipole fringe field                    (trck)
   radiate=nil,       -- radiate at slices                                 (trck)
   totalpath=nil,     -- variable 't' is the totalpath                     (trck)
+  cmap=nil,          -- use C/C++ maps when available                     (trck)
 
-  save=false,        -- create mtable and save results                    (mtbl)
+  save=false,        -- create mtable and save results                    (trck)
+  aper=nil,          -- check for aperture (default atsave)               (trck)
   title=nil,         -- title of mtable (default seq.name)                (mtbl)
-  observe=nil,       -- save only in observed elements (every n turns)    (mtbl)
-  savesel=nil,       -- save selector (predicate)                         (mtbl)
+  observe=nil,       -- save only in observed elements (every n turns)    (trck)
   savemap=nil,       -- save damap in the column __map                    (trck)
 
   atentry=nil,       -- action called when entering an element            (trck)
@@ -409,13 +414,16 @@ local cofind = command 'cofind' {
   atsave=nil,        -- action called when saving in mtable               (trck)
   atdebug=nil,       -- action called when debugging the element maps     (trck)
 
+  savesel=nil,       -- save selector (predicate)                         (trck)
+  apersel=nil,       -- aper selector (predicate, default atentry)        (trck)
+
   codiff=1e-10,      -- finite differences step for jacobian              (cofn)
   coiter=20,         -- maximum number of iterations                      (cofn)
   cotol=1e-8,        -- closed orbit tolerance (i.e. min |dx|)            (cofn)
   O1=0,              -- optional final coordinates translation            (cofn)
 
-  info=nil,          -- information level (output on terminal)            (cofn)
-  debug=nil,         -- debugging information level (output on terminal)  (cofn)
+  info=nil,          -- information level (output on terminal)            (trck)
+  debug=nil,         -- debugging information level (output on terminal)  (trck)
   usrdef=nil,        -- user defined data attached to the mflow           (trck)
 
   mflow=nil,         -- mflow, exclusive with other attributes
