@@ -371,11 +371,11 @@ inline void misalignent (cflw<M> &m)
 {
   mdump(0);
   num_t r[3*3];
-  num_t t[3]={m.edir*fval(m.dx), m.edir*fval(m.dy), fval(m.ds)}; // t needs to be weighted before rotation
+  num_t tb[3], t[3]={m.edir*fval(m.dx), m.edir*fval(m.dy), fval(m.ds)}; // t needs to be weighted before rotation
 
-  if (m.algn.rot && m.algn.trn) {
+  if (m.rot && m.trn) {
     mad_mat_rotyxz(r, m.edir*fval(m.dphi), -m.edir*fval(m.dthe), -m.edir*fval(m.dpsi), false);
-    mad_mat_mul(r, t, t, 3, 1, 3);
+    mad_mat_mul(r, t, tb, 3, 1, 3);
   }
 
   if (m.rot && m.sdir > 0) {
@@ -385,7 +385,8 @@ inline void misalignent (cflw<M> &m)
   }
 
   if (m.trn)
-    translate<M>(m, m.sdir, R(m.dx), R(m.dy), R(m.ds));
+    translate<M>(m, m.sdir, 
+    R(m.dx)-(t[0]+tb[0]), R(m.dy)-(t[1]+tb[1]), R(m.ds)-(t[2]+tb[2]));
 
   if (m.rot && m.sdir < 0) {
     srotation<M>(m, -m.edir, R(m.dpsi));
@@ -400,11 +401,11 @@ inline void misalignexi (cflw<M> &m)
 {
   mdump(0);
   num_t rb[3*3], r[3*3],
-        tb[3]  , t[3]={m.edir*mfval(m.dx)  , m.edir*mfval(m.dy)  , fval(m.ds)  },
+        tb[3]  , t[3]={m.edir*fval(m.dx), m.edir*fval(m.dy), fval(m.ds)},
                  a[3]={fval(m.dphi), fval(m.dthe), fval(m.dpsi)};
 
   if (m.rot)
-    mad_mat_rotyxz(r, m.edir*ma[0], -m.edir*ma[1], -m.edir*ma[2], true);
+    mad_mat_rotyxz(r, m.edir*a[0], -m.edir*a[1], -m.edir*a[2], true);
 
   // compute Rbar, Tbar
   num_t ld = (fval(m.eld) ? fabs(m.eld) : fabs(m.el));
