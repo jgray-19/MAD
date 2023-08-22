@@ -349,17 +349,17 @@ inline void changeref (cflw<M> &m, num_t lw)
   lw *= m.sdir;
 
   if (rot && lw > 0) {
-    yrotation<M>(m,  m.sdir, zero);
-    xrotation<M>(m, -m.sdir, zero);
-    srotation<M>(m,  m.sdir, zero);
+    yrotation<M>(m,  m.edir, R(m.dthe));
+    xrotation<M>(m, -m.edir, R(m.dphi));
+    srotation<M>(m,  m.edir, R(m.dpsi));
   }
 
-  if (trn) translate<M>(m, 1, zero, zero, zero);
+  if (trn) translate<M>(m, 1, R(m.dx), R(m.dy), R(m.ds));
 
   if (rot && lw < 0) {
-    srotation<M>(m, -m.sdir, zero);
-    xrotation<M>(m,  m.sdir, zero);
-    yrotation<M>(m, -m.sdir, zero);
+    srotation<M>(m, -m.edir, R(m.dpsi));
+    xrotation<M>(m,  m.edir, R(m.dphi));
+    yrotation<M>(m, -m.edir, R(m.dthe));
   }
   mdump(1);
 }
@@ -1510,52 +1510,52 @@ inline void rfcav_fringe (cflw<M> &m, num_t lw)
 
 // --- patches ---
 
-void mad_trk_xrotation_r (mflw_t *m, num_t lw) {
-  xrotation<par_t>(m->rflw, lw, zero);
+void mad_trk_xrotation_r (mflw_t *m, num_t lw, int is) {
+  xrotation<par_t>(m->rflw, lw, zero); (void)is;
 }
-void mad_trk_yrotation_r (mflw_t *m, num_t lw) {
-  yrotation<par_t>(m->rflw, lw, zero);
+void mad_trk_yrotation_r (mflw_t *m, num_t lw, int is) {
+  yrotation<par_t>(m->rflw, lw, zero); (void)is;
 }
-void mad_trk_srotation_r (mflw_t *m, num_t lw) {
-  srotation<par_t>(m->rflw, lw, zero);
+void mad_trk_srotation_r (mflw_t *m, num_t lw, int is) {
+  srotation<par_t>(m->rflw, lw, zero); (void)is;
 }
-void mad_trk_translate_r (mflw_t *m, num_t lw) {
-  translate<par_t>(m->rflw, lw, zero, zero, zero);
+void mad_trk_translate_r (mflw_t *m, num_t lw, int is) {
+  translate<par_t>(m->rflw, lw, zero, zero, zero); (void)is;
 }
-void mad_trk_changeref_r (mflw_t *m, num_t lw) {
-  changeref<par_t>(m->rflw, lw);
-}
-
-void mad_trk_xrotation_t (mflw_t *m, num_t lw) {
-  xrotation<map_t>(m->tflw, lw, zero);
-}
-void mad_trk_yrotation_t (mflw_t *m, num_t lw) {
-  yrotation<map_t>(m->tflw, lw, zero);
-}
-void mad_trk_srotation_t (mflw_t *m, num_t lw) {
-  srotation<map_t>(m->tflw, lw, zero);
-}
-void mad_trk_translate_t (mflw_t *m, num_t lw) {
-  translate<map_t>(m->tflw, lw, zero, zero, zero);
-}
-void mad_trk_changeref_t (mflw_t *m, num_t lw) {
-  changeref<map_t>(m->tflw, lw);
+void mad_trk_changeref_r (mflw_t *m, num_t lw, int is) {
+  changeref<par_t>(m->rflw, lw); (void)is;
 }
 
-void mad_trk_xrotation_p (mflw_t *m, num_t lw) {
-  xrotation<prm_t>(m->pflw, lw, zero);
+void mad_trk_xrotation_t (mflw_t *m, num_t lw, int is) {
+  xrotation<map_t>(m->tflw, lw, zero); (void)is;
 }
-void mad_trk_yrotation_p (mflw_t *m, num_t lw) {
-  yrotation<prm_t>(m->pflw, lw, zero);
+void mad_trk_yrotation_t (mflw_t *m, num_t lw, int is) {
+  yrotation<map_t>(m->tflw, lw, zero); (void)is;
 }
-void mad_trk_srotation_p (mflw_t *m, num_t lw) {
-  srotation<prm_t>(m->pflw, lw, zero);
+void mad_trk_srotation_t (mflw_t *m, num_t lw, int is) {
+  srotation<map_t>(m->tflw, lw, zero); (void)is;
 }
-void mad_trk_translate_p (mflw_t *m, num_t lw) {
-  translate<prm_t>(m->pflw, lw, zero, zero, zero);
+void mad_trk_translate_t (mflw_t *m, num_t lw, int is) {
+  translate<map_t>(m->tflw, lw, zero, zero, zero); (void)is;
 }
-void mad_trk_changeref_p (mflw_t *m, num_t lw) {
-  changeref<prm_t>(m->pflw, lw);
+void mad_trk_changeref_t (mflw_t *m, num_t lw, int is) {
+  changeref<map_t>(m->tflw, lw); (void)is;
+}
+
+void mad_trk_xrotation_p (mflw_t *m, num_t lw, int is) {
+  xrotation<prm_t>(m->pflw, lw, zero); (void)is;
+}
+void mad_trk_yrotation_p (mflw_t *m, num_t lw, int is) {
+  yrotation<prm_t>(m->pflw, lw, zero); (void)is;
+}
+void mad_trk_srotation_p (mflw_t *m, num_t lw, int is) {
+  srotation<prm_t>(m->pflw, lw, zero); (void)is;
+}
+void mad_trk_translate_p (mflw_t *m, num_t lw, int is) {
+  translate<prm_t>(m->pflw, lw, zero, zero, zero); (void)is;
+}
+void mad_trk_changeref_p (mflw_t *m, num_t lw, int is) {
+  changeref<prm_t>(m->pflw, lw); (void)is;
 }
 
 // --- tilt & misalignment ---
