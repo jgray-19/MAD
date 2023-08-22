@@ -238,10 +238,10 @@ inline void bxbyh (const cflw<M> &m, const V &x, const V &y, T &bx, T &by)
 template <typename M, typename T=M::T, typename P=M::P, typename R=M::R, typename V>
 inline void xrotation (cflw<M> &m, num_t lw, const V &dphi_)
 {
-  if (fabs(dphi_)+fabs(m.dphi) < minang) return;
+  if (fabs(dphi_)+fabs(m.ang) < minang) return;
   mdump(0);
   P a;
-  if (fval(dphi_)) a = lw*dphi_; else a = lw*m.sdir*m.edir*R(m.dphi);
+  if (fval(dphi_)) a = lw*dphi_; else a = lw*m.sdir*m.edir*R(m.ang);
   P sa=sin(a), ca=cos(a), ta=tan(a);
 
   FOR(i,m.npar) {
@@ -263,10 +263,10 @@ inline void xrotation (cflw<M> &m, num_t lw, const V &dphi_)
 template <typename M, typename T=M::T, typename P=M::P, typename R=M::R, typename V>
 inline void yrotation (cflw<M> &m, num_t lw, const V &dthe_)
 {
-  if (fabs(dthe_)+fabs(m.dthe) < minang) return;
+  if (fabs(dthe_)+fabs(m.ang) < minang) return;
   mdump(0);
   P a;
- if (fval(dthe_)) a = -lw*dthe_; else a = -lw*m.sdir*m.edir*R(m.dthe);
+ if (fval(dthe_)) a = -lw*dthe_; else a = -lw*m.sdir*m.edir*R(m.ang);
   P sa=sin(a), ca=cos(a), ta=tan(a);
 
   FOR(i,m.npar) {
@@ -288,10 +288,10 @@ inline void yrotation (cflw<M> &m, num_t lw, const V &dthe_)
 template <typename M, typename T=M::T, typename P=M::P, typename R=M::R, typename V>
 inline void srotation (cflw<M> &m, num_t lw, const V &dpsi_)
 {
-  if (fabs(dpsi_)+fabs(m.dpsi) < minang) return;
+  if (fabs(dpsi_)+fabs(m.ang) < minang) return;
   mdump(0);
   P a;
-  if (fval(dpsi_)) a = lw*dpsi_; else a = lw*m.sdir*m.edir*R(m.dpsi);
+  if (fval(dpsi_)) a = lw*dpsi_; else a = lw*m.sdir*m.edir*R(m.ang);
   P sa=sin(a), ca=cos(a);
 
   FOR(i,m.npar) {
