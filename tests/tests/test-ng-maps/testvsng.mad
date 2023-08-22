@@ -11,6 +11,7 @@ Options:
   -s, --save:             Save the config and results to a file
   -n, --norun:            Do not run tests, just read cfg and res files and continue with other options
   -f, --figure:           Generate a figure for each test in output/plots
+  -g  --gen_comp:         Generate the compatibility tests for ng
   -c, --cmapall:          Only run the cmap comparison, charge, edir and backtracking tests
   -l  --luaall:           Only run the lua charge, edir and backtracking tests
   -t, --test:             Do not run unittests, instead run as a test where PTC is 
@@ -29,6 +30,7 @@ Options:
       --bck:              Select to run the backtracking tests
       --cmap:             Select to run the cmap comparison tests
       --cstm:             Select to run the custom tests
+      --comp:             Select to run the ng compatibility tests
 ]]
 
 local unittest_help = [[
@@ -36,6 +38,7 @@ local unittest_help = [[
 Additional/Augmented options for unit tests, provided for tests against PTC:
   -v, --verbose:          Augmented to also print during the test.
   -s, --save:             Save the config and results to a file
+  -g  --gen_comp:         Generate the compatibility tests for ng
   -c, --cmapall:          Only run the cmap comparison, charge, edir and backtracking tests
   -l  --luaall:           Only run the lua charge, edir and backtracking tests
   -t, --test:             Do not run unittests, instead run as a test where PTC is 
@@ -47,6 +50,7 @@ If any of the following options are selected, by default all other tests are des
       --bck:              Select to run the backtracking tests
       --cmap:             Select to run the cmap comparison tests
       --cstm:             Select to run the custom tests
+      --comp:             Select to run the ng compatibility tests
 Note: Plots are automatically generated for all utests in output/plots
 ]]
 
@@ -64,17 +68,20 @@ args_dict["-c"       ] = "docppall"
 args_dict["--cmapall"] = "docppall"
 args_dict["-l"       ] = "doluaall"
 args_dict["--luaall" ] = "doluaall"
+args_dict["-g"       ] = "gen_comp"
+args_dict["--gen_ng" ] = "gen_comp"
 
 args_dict["--cmap"   ] = "docmap"
 args_dict["--chg"    ] = "dochg"
 args_dict["--edir"   ] = "doedir"
 args_dict["--bck"    ] = "dobck"
 args_dict["--cstm"   ] = "docstm"
+args_dict["--comp"   ] = "docomp"
 
 -- Add arg functions ----------------------------------------------------------o
 local selected_cpp_or_lua = false
 local selected_individual = false
-local individual_args = {"dobck", "doedir", "dochg", "docmap", "docstm"}
+local individual_args = {"dobck", "doedir", "dochg", "docmap", "docstm", "docomp"}
 
 local function run_cpp_or_lua_all(test_name)
   if not selected_cpp_or_lua then -- deselect all as one of the cpp/lua tests was selected

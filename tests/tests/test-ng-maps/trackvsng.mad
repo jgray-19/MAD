@@ -1,6 +1,6 @@
 -- locals ---------------------------------------------------------------------o
 local mtable, damap, tostring                                    in MAD
-local tblcpy, fileexists, tblcat, strinter                       in MAD.utility
+local tblcpy, fileexists, tblcat, strinter, openfile             in MAD.utility
 local max                                                        in math         
 local is_number, is_damap                                        in MAD.typeid
 local assertTrue                                                 in MAD.utest
@@ -17,15 +17,15 @@ local create_dif = require "madl_dbgmap".cmpmdump
 
 local dum = damap() -- get a dummy damap object for reading
 
+local utest_dir  = \s -> 'utests/' ..(s or '')
+os.execute("mkdir -p "..utest_dir()) -- Create utest dir if it doesn't exist
 
 -- Very useful for debugging
-local const_str = [[
+local track_str = [[
 -- Constants
 local models = {'DKD', 'TKT'}
 local X0s = 
-]] .. tostring(X0s, ",\n") .. "\n"
-
-local track_str = [[
+]] .. tostring(X0s, ",\n") .. [[
 local X0 = X0s[${x0i}]
 if ${order} > 0 then 
   X0 = MAD.damap{nv = 6, mo = ${order}}
@@ -75,8 +75,10 @@ return mflw, particles
 
 -- Generate a MAD-NG script from the cfg and return it-------------------------o
 local function create_run(cfg, cur_cfg, track_str_)
-  return (track_str_ and "" or const_str) .. 
-  strinter(strinter(track_str_ or track_str, {elm = cur_cfg.elm or cfg.elm}, "="), cur_cfg, "=") % cfg
+  return strinter(
+    strinter(track_str_ or track_str, {elm = cur_cfg.elm or cfg.elm}, "="), 
+    cur_cfg, "="
+  ) % cfg
 end
 -------------------------------------------------------------------------------o
 
@@ -150,6 +152,21 @@ local function reverse_edir(cfg, results)
   reverse_attr(cfg, results, "edir")
 end
 
+local function ng_test(cfg, results)
+  if not cfg.docomp then return end
+  if cfg.gen_comp then
+    for p = 1, cfg.npar do 
+      local res = cfg.ref_map[p]
+      if not is_damap(res) then res = tbl2da(res) end
+      res:write(cfg.utest_reffile, cfg.cur_cfg.cfgid.."_P"..p)
+    end
+  else
+    local prev_res = dum:read(cfg.utest_reffile)
+    cfg.cur_cfg.test_type = "compatibility"  -- Set test type
+    dif_save_prnt_dbg(cfg, cfg.ref_map, prev_res, results, cfg.ref_script)
+  end
+end
+
 local function cmaps(cfg, results)
   cfg.cmap = true
   local cmap_script = create_run(cfg, cfg.cur_cfg)
@@ -164,6 +181,7 @@ local function cmaps(cfg, results)
   backtrack   (cfg, results) -- Backtrack
   reverse_chg (cfg, results) -- Change sign of chg
   reverse_edir(cfg, results) -- Change sign of edir
+  ng_test     (cfg, results) -- Check compatibility with previous run
   cfg.cmap, cfg.ref_map, cfg.ref_script = false, lref_map, lref_script
 end
 
@@ -182,6 +200,7 @@ local function run_cfg(cfg, equiv, results)
     backtrack   (cfg, results) -- Backtrack
     reverse_chg (cfg, results) -- Change sign of chg
     reverse_edir(cfg, results) -- Change sign of edir
+    ng_test     (cfg, results) -- Check compatibility with previous run
   end
 
   -- Copy main config to make comparable config and then compare
@@ -246,6 +265,11 @@ local function run_test(cfg, equiv)
   cfg.cmap = false
 
   args_to_cfg(cfg)
+  if cfg.docomp and cfg.gen_comp then
+    cfg.utest_reffile = openfile(utest_dir(cfg.name..".ref"), "w")
+  elseif cfg.docomp then
+    cfg.utest_reffile = openfile(utest_dir(cfg.name..".ref"), "r")
+  end
 
   -- If the user does not want to run the test, just show results from previous run
   if not cfg.dorun then return do_norun (cfg) end
@@ -289,8 +313,8 @@ local function run_test(cfg, equiv)
       tblcat({"cfgid"}, results.res_cols), 
       hdr_lst
     ) 
+    save_res(cfg, results, nil, {"cfgid", "test_type"}) 
   end
-  if cfg.dosave then save_res(cfg, results, nil, {"cfgid", "test_type"}) end
 
   -- Print the results
   if cfg.doprnt then show_res(results, results, cfg.alist, cfg.tol) end 
@@ -315,5 +339,4 @@ end
 -------------------------------------------------------------------------------o
 return { 
   run_test         = run_test        ,
-  default_plot_cfg = default_plot_cfg,
 }

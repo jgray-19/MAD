@@ -67,6 +67,9 @@ ref_cfg = MAD.object "ref" { -- The reference configuration for all tests
   docmap = true, -- Default: true -> Whether to do cmap
   docstm = true, -- Default: true -> Whether to do custom equivalences
 
+  docomp   = true , -- Default: true -> Whether to do compatibility tests
+  gen_comp = false, -- Default: true -> Whether to generate compatibility tests
+
   doluaall = true, -- Default: true -> Whether to do all Lua tests
   docppall = true, -- Default: true -> Whether to do all C++ tests
   
