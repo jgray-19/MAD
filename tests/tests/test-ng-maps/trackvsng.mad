@@ -318,6 +318,7 @@ local function run_test(cfg, equiv)
     ) 
     save_res(cfg, results, nil, {"cfgid", "test_type"}) 
   end
+  if cfg.dosave then save_res(cfg, results, nil, {"cfgid", "test_type"}) end
 
   -- Print the results
   if cfg.doprnt then show_res(results, results, cfg.alist, cfg.tol) end 
