@@ -161,7 +161,10 @@ local function ng_test(cfg, results)
       res:write(cfg.utest_reffile, cfg.cur_cfg.cfgid.."_P"..p)
     end
   else
-    local prev_res = dum:read(cfg.utest_reffile)
+    local prev_res = {}
+    for p = 1, cfg.npar do 
+      prev_res[p] = dum:read(cfg.utest_reffile)
+    end
     cfg.cur_cfg.test_type = "compatibility"  -- Set test type
     dif_save_prnt_dbg(cfg, cfg.ref_map, prev_res, results, cfg.ref_script)
   end
