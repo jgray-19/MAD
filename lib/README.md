@@ -258,3 +258,32 @@ cd lfs
 make lfs.a
 cp liblfs.a ../../bin/linux
 ```
+
+## MAD
+Finally, we can build the MAD library. For this, you need to be in the `src` directory. If you are not, you can change to the `src` directory from the `lib/lfs` directory by running:
+```bash
+cd ../../src
+``` 
+
+### Build the library
+First, you need to make the correct Makefile. You can do this by running:
+```bash
+cp Makefile.linux Makefile
+```
+
+If you would like to make the lua files editable, you need to change the `Makefile` as follows:
+```diff
+- NOT      := # $(wildcard *.mad help/*.mad)
++ NOT      :=  $(wildcard *.mad help/*.mad)
+```
+
+Finally, you can build the library by running:
+```bash
+make -j
+```
+The `-j` flag is used to speed up the build process by running multiple jobs in parallel. The number of jobs is determined by the number of cores on your machine.
+
+If everything has been built correctly, you should see the `mad` binary in the `src` directory. You can now run the MAD-NG executable by running:
+```bash
+./mad
+```
