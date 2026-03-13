@@ -1,4 +1,4 @@
-@ title              %08s     "no-title"
+@ title              %n       nil
 @ header1            %09s     "MyHeader1"
 * dict               x                  y                  z
 $ %s                 %le                %le                %le

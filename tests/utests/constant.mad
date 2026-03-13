@@ -6,7 +6,7 @@
  | Methodical Accelerator Design - Copyright CERN 2016+
  | Support: http://cern.ch/mad  - mad at cern.ch
  | Authors: L. Deniau, laurent.deniau at cern.ch
- | Contrib: -
+ | Contrib: J.M. Gray
  |
  o-----------------------------------------------------------------------------o
  | You can redistribute this file and/or modify it under the terms of the GNU
@@ -23,10 +23,13 @@
 
 -- locals ---------------------------------------------------------------------o
 
-local assertFalse, assertNil, assertNotNil, assertEquals, assertStrContains,
-      assertErrorMsgContains      in MAD.utest
+local assertFalse, assertTrue, assertNil, assertNotNil, assertEquals,
+      assertAlmostEquals, assertNaN, assertErrorMsgContains in MAD.utest
 
 local constant in MAD
+local is_nan, is_finite, is_positive in MAD.typeid
+
+local abs, log, sqrt in math
 
 -- helpers --------------------------------------------------------------------o
 
@@ -36,7 +39,72 @@ local mth = \f,s,... s[f](s,...)
 
 TestConstant = {}
 
-function TestConstant:testSimple01()
+function TestConstant:testMathRelationships()
+  assertEquals      ( constant.twopi      , 2 * constant.pi       )
+  assertEquals      ( constant.pi_2       , constant.pi / 2       )
+  assertEquals      ( constant.pi_4       , constant.pi / 4       )
+  assertAlmostEquals( constant.one_pi     , 1 / constant.pi       , constant.eps )
+  assertAlmostEquals( constant.two_pi     , 2 / constant.pi       , constant.eps )
+  assertAlmostEquals( constant.log2e      , 1 / log(2)            , constant.eps )
+  assertAlmostEquals( constant.log10e     , 1 / log(10)           , constant.eps )
+  assertAlmostEquals( constant.ln2        , log(2)                , constant.eps )
+  assertAlmostEquals( constant.ln10       , log(10)               , constant.eps )
+  assertAlmostEquals( constant.sqrt2      , sqrt(2)               , constant.eps )
+  assertAlmostEquals( constant.sqrt3      , sqrt(3)               , constant.eps )
+  assertAlmostEquals( constant.sqrt1_2    , 1 / sqrt(2)           , constant.eps )
+  assertAlmostEquals( constant.sqrt1_3    , 1 / sqrt(3)           , constant.eps )
+  assertAlmostEquals( constant.deg2rad    , constant.pi / 180     , constant.eps )
+  assertAlmostEquals( constant.rad2deg    , 180 / constant.pi     , constant.eps )
+  assertAlmostEquals( constant.deg2rad * constant.rad2deg, 1      , constant.eps )
+  assertAlmostEquals( constant.sqrtpi^2   , constant.pi           , 4 * constant.eps )
+  assertAlmostEquals( constant.one_sqrtpi * constant.sqrtpi, 1    , constant.eps )
+  assertAlmostEquals( constant.two_sqrtpi * constant.sqrtpi, 2    , constant.eps )
+end
+
+function TestConstant:testSpecialValues()
+  assertTrue ( is_positive(constant.tiny) )
+  assertTrue ( is_positive(constant.eps ) )
+  assertTrue ( is_positive(constant.huge) )
+  assertTrue ( constant.tiny < constant.eps  )
+  assertTrue ( constant.eps  < 1             )
+  assertTrue ( constant.huge > 1             )
+  assertTrue ( constant.inf  > constant.huge )
+  assertTrue ( -constant.inf < -constant.huge )
+  assertTrue ( is_finite(constant.tiny)      )
+  assertTrue ( is_finite(constant.eps )      )
+  assertTrue ( is_finite(constant.huge)      )
+  assertFalse( is_finite(constant.inf )      )
+  assertFalse( is_nan   (constant.inf )      )
+  assertNaN  ( constant.nan )
+end
+
+function TestConstant:testPhysicalConstants()
+  assertEquals( constant.umass, constant.amass )
+
+  for _,name in ipairs {
+    'minlen', 'minang', 'minstr', 'clight', 'mu0', 'epsilon0', 'qelect',
+    'hbar', 'amass', 'emass', 'nmass', 'pmass', 'mumass', 'deumass',
+    'eradius', 'alphaem',
+  } do
+    assertTrue(is_positive(constant[name]), name)
+  end
+
+  assertAlmostEquals(
+    constant.mu0 * constant.epsilon0 * constant.clight^2,
+    1,
+    32 * constant.eps
+  )
+end
+
+function TestConstant:testReadonly()
+  local msg = "invalid write access to restricted object"
+  local name = "__codex_test_constant_extension__"
+  local setv = \k,v => constant[k] = v end
+  local delv = \k   => constant[k] = nil end
+  assertErrorMsgContains(msg, setv, 'pi'   , 0   )
+  assertErrorMsgContains(msg, delv, 'pi'        )
+  setv(name, 0)
+  assertEquals(constant[name], 0)
 end
 
 -- end ------------------------------------------------------------------------o

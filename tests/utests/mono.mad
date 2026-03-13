@@ -24,7 +24,7 @@
 
 local _C, monomial, tostring, totable                               in MAD
 local min, max                                                      in MAD.gmath
-local assertTrue, assertFalse, assertEquals, assertAlmostEquals, 
+local assertTrue, assertFalse, assertEquals, assertAlmostEquals,
       assertNil                                                     in MAD.utest
 local is_monomial, is_number                                        in MAD.typeid
 
@@ -75,10 +75,30 @@ local mono_cut = {
   monomial "101101",
 }
 
-local mono_cut_lengths = {1, 1, 2, 3, 4, 5, 
-                           6, 2, 6, 4, 5, 4, 
+local mono_cut_lengths = {1, 1, 2, 3, 4, 5,
+                           6, 2, 6, 4, 5, 4,
                            6, 5, 6, 3, 6, 4,
                            5, 6, 6, 5, 5, 6}
+
+local function prod(vals, n_, o_, s_)
+  local p = 1
+  local n = n_ and n_ < #vals and n_ or #vals
+  for i = (o_ or 0) + 1, n, s_ or 1 do p = p * vals[i] end
+  return p
+end
+
+local function fact(n)
+  local p = 1
+  for i = 2, n do p = p * i end
+  return p
+end
+
+local function prodf(vals, n_, o_, s_)
+  local p = 1
+  local n = n_ and n_ < #vals and n_ or #vals
+  for i = (o_ or 0) + 1, n, s_ or 1 do p = p * fact(vals[i]) end
+  return p
+end
 
 -- regression test suites -----------------------------------------------------o
 
@@ -94,13 +114,13 @@ function TestMono:testEqual ()
 end
 
 function TestMono:testConstructor ()
-  for i in ipairs(1..9) do          --Up to 9 cause 10 = a
+  for i = 1, 9 do          -- Up to 9 because 10 encodes to 'A'
     local mAct = monomial(i)
     local mAct2 = monomial(i, 3)
     local mStr = ""
     local mTbl = {}
     local mTbl2 = {}
-    for j in ipairs(1..i) do
+    for j = 1, i do
       mStr = mStr .. "0"
       mTbl[j] = 0
       mTbl2[j] = 3
@@ -110,7 +130,7 @@ function TestMono:testConstructor ()
     assertEquals(mAct2, monomial(mTbl2))
     mStr = ""
     mTbl = {}
-    for j in ipairs(1..i) do
+    for j = 1, i do
       mStr = mStr .. tostring(j)
       mTbl[j] = j
     end
@@ -125,7 +145,7 @@ function TestMono:testSize  ()
     assertEquals(#mono_cut[i], mono_cut_lengths[i])
     assertEquals(mono_cut[i].n, mono_cut_lengths[i])
   end
-end 
+end
 
 function TestMono:testSame  ()
   local mExp = monomial "00000"
@@ -194,25 +214,33 @@ end
 function TestMono:testOrdp()
   for i,m in ipairs(mono) do
     assertEquals(m:ordp(), 0)
-  end 
-  local mono1 = monomial({213, 71, 161, 105, 137, 182})
-  local mono2 = monomial({21, 61, 2, 16, 54, 38})
-  assertEquals(mono1:ordp(), 6374484690210)
-  assertEquals(mono2:ordp(), 84115584)
-  assertEquals(mono1:ordp(2), 4698141)
-  assertEquals(mono2:ordp(2), 2268)
+  end
+  local vals1 = {213, 71, 161, 105, 137, 182}
+  local vals2 = {21, 61, 2, 16, 54, 38}
+  local mono1 = monomial(vals1)
+  local mono2 = monomial(vals2)
+  assertEquals(mono1:ordp(), prod(vals1))
+  assertEquals(mono2:ordp(), prod(vals2))
+  assertEquals(mono1:ordp(2), prod(vals1, 2))
+  assertEquals(mono2:ordp(4), prod(vals2, 4))
+  assertEquals(mono1:ordp(6, 1), prod(vals1, 6, 1))
+  assertEquals(mono2:ordp(6, 1, 2), prod(vals2, 6, 1, 2))
 end
 
 function TestMono:testOrdpf()
   for i,m in ipairs(mono) do
     assertEquals(m:ordpf(), 1)
-  end 
-  local mono1 = monomial({1, 2, 3, 4, 5, 6})
-  local mono2 = monomial({10, 11, 1, 2, 0, 5})
-  assertEquals(mono1:ordpf(), 24883200)
-  assertEquals(mono2:ordpf(), 34764020121600000)
-  assertEquals(mono1:ordpf(2), 720)
-  assertEquals(mono2:ordpf(2), 3628800)
+  end
+  local vals1 = {1, 2, 3, 4, 5, 6}
+  local vals2 = {10, 11, 1, 2, 0, 5}
+  local mono1 = monomial(vals1)
+  local mono2 = monomial(vals2)
+  assertEquals(mono1:ordpf(), prodf(vals1))
+  assertEquals(mono2:ordpf(), prodf(vals2))
+  assertEquals(mono1:ordpf(2), prodf(vals1, 2))
+  assertEquals(mono2:ordpf(4), prodf(vals2, 4))
+  assertEquals(mono1:ordpf(6, 1), prodf(vals1, 6, 1))
+  assertEquals(mono2:ordpf(6, 1, 2), prodf(vals2, 6, 1, 2))
 end
 
 function TestMono:testToString()
@@ -239,7 +267,7 @@ function TestMono:testConcat()
   end
   assertEquals(monomial ("aBc1iX") .. monomial("Lz2Gsc"), monomial("aBc1iXLz2Gsc"))
   assertEquals(monomial(5, 21):concat(monomial(6, 2)), monomial("LLLLL222222"))
-  
+
 end
 
 function TestMono:testIndex()
@@ -252,7 +280,7 @@ function TestMono:testIndex()
   local monoList = {mono1, mono2, mono3}
   local valsList = {vals1, vals2, vals3}
   for i,m in ipairs(monoList) do
-    for j, v in ipairs(m) do 
+    for j, v in ipairs(m) do
       assertEquals(m[j], valsList[i][j])
     end
   end
@@ -323,8 +351,8 @@ function TestMono:testSubtract()
   local subtractionMono = monomial(subtractionList)
   for i,m in ipairs(mono) do
     assertEquals(mono_gt[i]:sub(monomial("111111")), m)
-    assertEquals(m - monomial("111111"), monomial("000000")) --Checking that 0 - 1 = 0 
-    assertEquals(m - monomial("aaaaaa"), monomial("000000")) --Checking that 0 - 36 = 0 
+    assertEquals(m - monomial("111111"), monomial("000000")) --Checking that 0 - 1 = 0
+    assertEquals(m - monomial("aaaaaa"), monomial("000000")) --Checking that 0 - 36 = 0
     local subtractedMono = subtractionMono - m
     local subtractedList = {}
     for j, v in ipairs(m) do
@@ -363,12 +391,12 @@ end
 
 function TestMono:testReverse()
   for i,m in ipairs(mono) do
-    for j, v in ipairs(m) do 
+    for j, v in ipairs(m) do
       assertEquals(m:reverse()[j], m[#m-j+1])
     end
   end
   for i,m in ipairs(mono_cut) do
-    for j, v in ipairs(m) do 
+    for j, v in ipairs(m) do
       assertEquals(m:reverse()[j], m[#m-j+1])
     end
   end
@@ -390,5 +418,3 @@ end
 Test_Mono = {}
 
 -- end ------------------------------------------------------------------------o
-
-

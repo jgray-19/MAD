@@ -639,7 +639,9 @@ end
 
 --in "fix" (aca10ec) on 3 Jul 2020, testMatchFunc5 and testMatchFunc7 were deleted along with testMatchFuncCOB7. 
 --testMatchFunc6 was then renamed to testMatchFunc5. 
---testMatchFuncJAC6, testMatchFuncSPQ7, testMatchFuncMMA6 and testMatchFuncLMD6 were not changed or deleted and therefore use functions that do not exist
+--testMatchFuncJAC6, testMatchFuncSPQ7, testMatchFuncMMA6 and testMatchFuncLMD6
+--were not changed when the underlying helpers were removed. Keep those stale
+--tests disabled until the old examples are restored or rewritten.
 
 -- Constrained Optimization BY Linear Approximations (Simplex) ----------------o
 
@@ -769,16 +771,6 @@ function TestMatch:testMatchFuncMMA5 () -- difficult problem...
   assertEquals(ncall , 2500)
 end
 
-function TestMatch:testMatchFuncMMA6 () -- MAD-X example
-  local x = vector {0}
-  local status, fmin, ncall = testMatchFunc6(x, 'LD_MMA')
--- print(status, fmin, ncall, fref) ; x:print('x')
-  assertEquals      (status, 'FMIN')                                  -- SUCCESS
-  assertEquals      (ncall , 118   )
-  assertAlmostEquals(fmin  , 0  , 1e-12)
-  assertAlmostEquals(x[1]  , 3.5, 1e-12)
-end
-
 -- Sequential Least-Squares Quadratic Programming -----------------------------o
 
 function TestMatch:testMatchFuncSQP1 ()
@@ -836,16 +828,6 @@ function TestMatch:testMatchFuncSQP5 () -- difficult problem...
   assertAlmostEquals(x[2], 4.7429998, 3e-4) -- 4.7429994 -- side effects?
   assertAlmostEquals(x[3], 3.8211499, 4e-4) -- 3.8211503
   assertAlmostEquals(x[4], 1.3794083, 2e-4) -- 1.3794082
-end
-
-function TestMatch:testMatchFuncSPQ7 () -- MAD-X example
-  local x = vector {0}
-  local status, fmin, ncall = testMatchFunc7(x, 'LD_SLSQP')
--- print(status, fmin, ncall, fmin) ; x:print('x')
-  assertEquals      (status, 'FMIN')                                  -- SUCCESS
-  assertEquals      (ncall , 20    )
-  assertAlmostEquals(fmin  , 0  , 1e-12)
-  assertAlmostEquals(x[1]  , 3.5, 1e-12)
 end
 
 -- Jacobian -------------------------------------------------------------------o
@@ -906,16 +888,6 @@ function TestMatch:testMatchFuncJAC5 () -- difficult problem...
   assertAlmostEquals(x[4], 1.37940, 5e-4) -- 1.3794082
 end
 
-function TestMatch:testMatchFuncJAC6 () -- MAD-X example
-  local x = vector {0}
-  local status, fmin, ncall = testMatchFunc6(x, 'LD_JACOBIAN')
--- print(status, fmin, ncall, fmin) ; x:print('x')
-  assertEquals      (status, 'FMIN')                                  -- SUCCESS
-  assertEquals      (ncall , 17        )
-  assertAlmostEquals(fmin  , 0  , 1e-12)
-  assertAlmostEquals(x[1]  , 3.5, 1e-12)
-end
-
 -- Levengberg-Marquardt -------------------------------------------------------o
 
 function TestMatch:testMatchFuncLMD1 ()
@@ -972,16 +944,6 @@ function TestMatch:testMatchFuncLMD5 () -- difficult problem...
   assertAlmostEquals(x[2], 4.74166, 3e-4) -- 4.7429994
   assertAlmostEquals(x[3], 3.82290, 3e-4) -- 3.8211503
   assertAlmostEquals(x[4], 1.37917, 3e-4) -- 1.3794082
-end
-
-function TestMatch:testMatchFuncLMD6 () -- MAD-X example
-  local x = vector {0}
-  local status, fmin, ncall = testMatchFunc6(x, 'LD_LMDIF')
--- print(status, fmin, ncall, fmin) ; x:print('x')
-  assertEquals      (status, 'FMIN')                                  -- SUCCESS
-  assertEquals      (ncall , 17    )
-  assertAlmostEquals(fmin  , 0  , 1e-12)
-  assertAlmostEquals(x[1]  , 3.5, 1e-12)
 end
 
 -- end ------------------------------------------------------------------------o

@@ -26,6 +26,27 @@
 #include "mad_num.h"
 #include "mad_cst.h"
 
+// Some linked third-party static archives, currently libnfft3.a, still refer
+// to glibc-internal finite-entry symbols instead of the portable C math API.
+//
+// The concrete symbols observed in this build are:
+//   __exp_finite  -> exp(x)
+//   __sinh_finite -> sinh(x)
+//
+// The failure then appears only when the affected NFFT code path is used,
+// running TestMatrixFFT.testINFFT in the unit tests will trigger the failure.
+num_t __exp_finite (num_t x);
+num_t __exp_finite(num_t x)
+{
+  return exp(x);
+}
+
+num_t __sinh_finite (num_t x);
+num_t __sinh_finite(num_t x)
+{
+  return sinh(x);
+}
+
 // --- helpers ----------------------------------------------------------------o
 
 static inline num_t

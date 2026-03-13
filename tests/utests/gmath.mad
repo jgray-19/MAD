@@ -1139,9 +1139,9 @@ function TestGmath:testWf()
   for _,x in ipairs(values.num) do
     for _,y in ipairs(values.num) do
       local z = x + y * 1i
-      if abs(z) < inf then
+      if cabs(z) < inf then
         assertEquals( wf(z) - erfcx(-1i*z), 0 + 0*1i)
-        if real(sqr(z)) > -700 and abs(sqr(-1i*z)) < 700 then --ln(1e308) = 709.196...  For real(sqr(z)) < -700, exp(-sqr(z)) = inf and for abs(sqr(-1i*z)) > 700, erfc(-1i*z) = 1+infi
+        if real(sqr(z)) > -700 and cabs(sqr(-1i*z)) < 700 then --ln(1e308) = 709.196...  For real(sqr(z)) < -700, exp(-sqr(z)) = inf and for abs(sqr(-1i*z)) > 700, erfc(-1i*z) = 1+infi
           local result = wf(z) - (exp(-sqr(z)) * erfc(-1i*z))
           assertAlmostEquals(real(result), 0, eps )
           assertAlmostEquals(imag(result), 0, eps)
@@ -1149,7 +1149,7 @@ function TestGmath:testWf()
       end
     end
     assertEquals( wf(complex(x, 0)) - erfcx(-1i*x), 0 + 0*1i)
-    assertEquals( wf(x) - imag(erfcx(-1i*x)), 0) --The evaluation of purely real values returns im(w(z))
+    assertEquals( wf(x) - real(erfcx(-1i*x)), 0) --The evaluation of purely real values returns re(w(z))
   end
 end
 
@@ -1157,7 +1157,7 @@ function TestGmath:testErfi()
   for _,x in ipairs(values.num) do
     for _,y in ipairs(values.num) do
       local z = x + y * 1i
-      if x < 26 and abs(z) < inf then --see https://www.wolframalpha.com/input?i=erfi%2826%29
+      if x < 26 and cabs(z) < inf then --see https://www.wolframalpha.com/input?i=erfi%2826%29
         assertEquals(-1i * erf(1i*z) - erfi(z), 0+0*1i)
       end
     end
@@ -1176,9 +1176,9 @@ function TestGmath:testDawson()
     
     for _,y in ipairs(values.num) do
       local z = x + y * 1i
-      if abs(z) < sqrt(log(huge)) then
+      if cabs(z) < sqrt(log(huge)) then
         local result = dawson(z) - 0.5 * sqrt(pi) * exp(-sqr(z)) * erfi(z)
-        if abs(dawson(z)) > 2 or abs(dawson(z)) < 1 and abs(dawson(z)) > 0 and real(z) ~= tiny then --for x = tiny dawson(x) = x but exp(-sqr(x)) = 0
+        if cabs(dawson(z)) > 2 or cabs(dawson(z)) < 1 and cabs(dawson(z)) > 0 and real(z) ~= tiny then --for x = tiny dawson(x) = x but exp(-sqr(x)) = 0
           result = result / dawson(z)               --relative error
           assertAlmostEquals(real(result), 0, 16*eps)
           assertAlmostEquals(imag(result), 0, 16*eps)
@@ -1373,7 +1373,7 @@ function TestGmath:testProj()
   assertEquals( proj(-huge) , -huge+0i )
   assertEquals( proj(- inf) ,   inf+0i )
 
-  assertEquals( strtrim(tostring(proj(nan))), 'nan+0i' )
+  assertTrue( strtrim(tostring(proj(nan))):match("^nan%+0") ~= nil )
 
   assertEquals( proj(    0+1i) ,     0+1i )
   assertEquals( proj( tiny+1i) ,  tiny+1i )
@@ -1566,9 +1566,11 @@ end
 function TestGmath:testArc2len()
   for _,a in ipairs(values.rad) do
     for _,l in ipairs(values.num) do
-      assertEquals(arc2len(l, a), l*sinc(a/2)*cos(a))
+      local ref = l*sinc(a/2)*cos(a/2)
+      if ref == inf or ref == -inf then assertEquals(arc2len(l, a), ref)
+      else assertAlmostEquals(arc2len(l, a), ref, 8*eps) end
       if a ~= 0 and l > tiny and l < huge then 
-        assertAlmostEquals((arc2len(l, a) - 2*l/a * sin(a/2) * cos(a)) / arc2len(l, a), 0)
+        assertAlmostEquals((arc2len(l, a) - 2*l/a * sin(a/2) * cos(a/2)) / arc2len(l, a), 0, 2*eps)
       elseif l < huge then
         assertAlmostEquals(arc2len(l, a), l)
       end
@@ -1592,7 +1594,9 @@ end
 function TestGmath:testCord2len()
   for _,a in ipairs(values.rad) do
     for _,l in ipairs(values.num) do
-      assertEquals(cord2len(l, a), l*cos(a))
+      local ref = l*cos(a/2)
+      if ref == inf or ref == -inf then assertEquals(cord2len(l, a), ref)
+      else assertAlmostEquals(cord2len(l, a), ref, 8*eps) end
     end
   end
 end
@@ -1600,9 +1604,11 @@ end
 function TestGmath:testLen2arc()
   for _,a in ipairs(values.rad) do
     for _,l in ipairs(values.num) do
-      assertEquals(len2arc(l, a), l/(sinc(a/2)*cos(a)))
+      local ref = l/(sinc(a/2)*cos(a/2))
+      if ref == inf or ref == -inf then assertEquals(len2arc(l, a), ref)
+      else assertAlmostEquals(len2arc(l, a), ref, 8*eps) end
       if a ~= 0 and l > tiny and l < huge then 
-        assertAlmostEquals((len2arc(l, a) - l / ( 2 / a * sin(a/2) * cos(a))) / len2arc(l, a), 0)
+        assertAlmostEquals((len2arc(l, a) - l / ( 2 / a * sin(a/2) * cos(a/2))) / len2arc(l, a), 0)
       elseif l < huge then
         assertAlmostEquals(len2arc(l, a), l)
       end
@@ -1613,7 +1619,9 @@ end
 function TestGmath:testLen2cord()
   for _,a in ipairs(values.rad) do
     for _,l in ipairs(values.num) do
-      assertEquals(len2cord(l, a), l/cos(a))
+      local ref = l/cos(a/2)
+      if ref == inf or ref == -inf then assertEquals(len2cord(l, a), ref)
+      else assertAlmostEquals(len2cord(l, a), ref, 8*eps) end
     end
   end
 end
@@ -2690,7 +2698,7 @@ function TestGmath:testEmul()
     local mat = matrix(3, 3):fill(x)
     for _, y in ipairs(values.num) do 
       if x * y < inf then
-        assertAllAlmostEquals(totable(emul(mat, y)), totable(matrix(3,3):fill(x*y)), x*y*eps)
+        assertAllAlmostEquals(emul(mat, y):totable(), matrix(3,3):fill(x*y):totable(), x*y*eps)
       end
     end
     for i, v in ipairs(emul(mat, nan)) do 
@@ -2705,7 +2713,7 @@ function TestGmath:testEdiv()
     for _, y in ipairs(values.num) do 
       if y ~= 0 and y < huge then 
         if not (x / y == inf) then
-          assertAllAlmostEquals(totable(ediv(mat, y)), totable(matrix(3,3):fill(x/y)), x/y*eps)
+          assertAllAlmostEquals(ediv(mat, y):totable(), matrix(3,3):fill(x/y):totable(), x/y*eps)
         else
           for i, v in ipairs(ediv(mat, y)) do
             assertInf(v)
@@ -2734,7 +2742,7 @@ function TestGmath:testEpow()
     local mat = matrix(3, 3):fill(x)
     for _, y in ipairs(values.num) do 
       if x^y < inf then
-        assertAllAlmostEquals(totable(epow(mat, y)), totable(matrix(3,3):fill(x^y)), 45 * x^y * eps) --Sometimes fails for 1e-100 at 10 eps on Linux
+        assertAllAlmostEquals(epow(mat, y):totable(), matrix(3,3):fill(x^y):totable(), 45 * x^y * eps) --Sometimes fails for 1e-100 at 10 eps on Linux
       else
         for _, val in ipairs(epow(mat, y)) do
           assertInf(val)

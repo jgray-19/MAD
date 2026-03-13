@@ -27,11 +27,13 @@
 local toolbox  = require "toolbox"
 local assertFalse, assertTrue, assertNil, assertNotNil, assertEquals,
   assertErrorMsgContains, assertAlmostEquals                     in MAD.utest
-local mtable, filesys                                            in MAD
-local is_vector, is_cvector, is_mtable, is_number, is_table      in MAD.typeid
+local mtable, filesys, range                                     in MAD
+local is_vector, is_cvector, is_mtable, is_number, is_table,
+      is_mappable                                               in MAD.typeid
 local eps, pi                                                    in MAD.constant
-local abs, random, min                                           in MAD.gmath
+local abs                                                        in MAD.gmath
 local tblcpy, strsplitall                                        in MAD.utility
+local min, random                                                in math
 local check_kpairs                                               in toolbox
 
 local generate = false
@@ -966,7 +968,7 @@ end
 function TestMTable:testRangeOfTableEmpty()
   local tbl1, tbl2, tbl3 = getIdxTbl()
   for i,tbl in ipairs{tbl1, tbl2, tbl3} do
-    assertEquals(table.pack(tbl:range_of(1.5..1.7)) , {n=1})
+    assertEquals(table.pack(tbl:range_of(range(1.5,1.7))) , {n=1})
     assertEquals(table.pack(tbl:range_of({1.5,1.7})), {n=1})
   end
 end
@@ -974,12 +976,12 @@ end
 function TestMTable:testRangeOfRange()
   local tbl1, tbl2, tbl3 = getIdxTbl()
   for i,tbl in ipairs{tbl1, tbl2, tbl3} do
-    assertEquals(table.pack(tbl:range_of( 1.. 4)), {1,4,1,n=3})
-    assertEquals(table.pack(tbl:range_of(-4..-1)), {1,4,1,n=3})
-    assertEquals(table.pack(tbl:range_of( 2.. 3)), {2,3,1,n=3})
-    assertEquals(table.pack(tbl:range_of( 4.. 1)), {4,1,1,n=3})
-    assertEquals(table.pack(tbl:range_of(-1..-4)), {4,1,1,n=3})
-    assertEquals(table.pack(tbl:range_of( 3.. 2)), {3,2,1,n=3})
+    assertEquals(table.pack(tbl:range_of(range( 1, 4))), {1,4,1,n=3})
+    assertEquals(table.pack(tbl:range_of(range(-4,-1))), {1,4,1,n=3})
+    assertEquals(table.pack(tbl:range_of(range( 2, 3))), {2,3,1,n=3})
+    assertEquals(table.pack(tbl:range_of(range( 4, 1))), {4,1,1,n=3})
+    assertEquals(table.pack(tbl:range_of(range(-1,-4))), {4,1,1,n=3})
+    assertEquals(table.pack(tbl:range_of(range( 3, 2))), {3,2,1,n=3})
   end
 end
 
@@ -2676,7 +2678,7 @@ function TestMTable:testWriteValues()
     header6  = nil,
     header7  = { "val", 3 },
     header8  = 1+1i,
-    header9  = 7.3..-1.7..-1,
+    header9  = range(7.3, -1.7, -1),
     novector = true,
     header   = {
       "header1", "header2", "header3", "header4", "header5",
@@ -2687,7 +2689,7 @@ function TestMTable:testWriteValues()
   tbl.time, tbl.date, tbl.origin = "", "", ""
   tbl:addrow{"name1", 1  , 2    , 3.15, 1+1i}
   tbl:addrow{"name2", nil, nil  , true, nil}
-  tbl:addrow{"name1", 1  , false, 3.15, 7.3..-1.7..-1}
+  tbl:addrow{"name1", 1  , false, 3.15, range(7.3, -1.7, -1)}
   tbl:addcol("gen"  , \i->i)
   tbl:addrow{"name1", "value 'whith quote'", "value \"double quote\"", 3}
   testWrite(tbl, "tbl-write.tfs", rundir("tbl-write"))
@@ -2806,7 +2808,7 @@ function TestMTable:testReadValues()
   local col2 = { 1      , nil    , 1            , "value 'whith quote'"    }
   local col3 = { 2      , nil    , false        , "value \"double quote\"" }
   local col4 = { 3.15   , true   , 3.15         , 3                        }
-  local col5 = { 1+1i   , nil    , 7.3..-1.7..-1, nil                      }
+  local col5 = { 1+1i   , nil    , range(7.3, -1.7, -1), nil               }
   local col6 = { 1      , 2      , 3            , 4                        }
   assertEquals(tbl.header1, "header 'whith quote'"   )
   assertEquals(tbl.header2, "header \"double quote\"")
@@ -2816,7 +2818,7 @@ function TestMTable:testReadValues()
   assertEquals(tbl.header6, nil                      )
   assertEquals(tbl.header7, {"val", 3}               )
   assertEquals(tbl.header8, 1+1i                     )
-  assertEquals(tbl.header9, 7.3..-1.7..-1            )
+  assertEquals(tbl.header9, range(7.3, -1.7, -1)     )
   assertVecEquals(tbl:getcol(1), col1)
   assertVecEquals(tbl:getcol(2), col2)
   assertVecEquals(tbl:getcol(3), col3)
@@ -2958,7 +2960,7 @@ function TestMTable:testIterRangeRangeIdx()
   for _,tbl in ipairs{tbl1, tbl2, tbl3} do
     -- first/last iterator
     i = 1
-    for j,row in tbl:iter(1..-1) do
+    for j,row in tbl:iter(range(1,-1)) do
       assertEquals(row, tbl:getrow(j))
       assertEquals(i, j)
       i = i + 1
@@ -2967,7 +2969,7 @@ function TestMTable:testIterRangeRangeIdx()
 
     -- 2nd/3rd iterator
     i = 2
-    for j,row in tbl:iter(2..-2) do
+    for j,row in tbl:iter(range(2,-2)) do
       assertEquals(row, tbl:getrow(j))
       assertEquals(i, j)
       i = i + 1
@@ -3818,24 +3820,20 @@ function TestMTable:testCopyViewName()
   assertEquals(cpy2.name, "tbl2")
 end
 
-function TestMTable:testCopyViewOwner()
+function TestMTable:testCopyInheritedView()
   local tbl1, tbl2, tbl3 = getIdxTbl()
   for _,tbl in ipairs{tbl1, tbl2, tbl3} do
     local view = tbl "view" { }
-    local cpy1 = view:copy()
-    local cpy2 = view:copy(nil, true)
-    local cpy3 = view:copy(true)      -- shift right
-    for _,cpy in ipairs{cpy1, cpy2, cpy3} do
-      assertEquals(cpy:ncol(), tbl:ncol())
-      assertEquals(cpy:nrow(), tbl:nrow())
-      assertEquals(cpy:ngen(), 0)
-      for i=1,4 do
-        assertEquals(cpy:getrow(i), tbl:getrow(i))
-      end
+    local cpy = view:copy()
+    assertEquals(cpy:ncol(), tbl:ncol())
+    assertEquals(cpy:nrow(), tbl:nrow())
+    assertEquals(cpy:ngen(), 0)
+    for i=1,4 do
+      assertEquals(cpy:getrow(i), tbl:getrow(i))
     end
-    assertTrue (cpy1:is_view())
-    assertFalse(cpy2:is_view())
-    assertFalse(cpy3:is_view())
+    assertTrue(cpy:is_view())
+    assertErrorMsgContains("invalid argument #2 (string expected)",
+                           view.copy, view, true)
   end
 end
 
@@ -4045,81 +4043,61 @@ end
 
 function TestMTable:testSetReadOnlyOwner()
   local tbl = mtable "tbl" { {"dict"}, "x", "y", "z"}
-  local row = {"name", 1, 2, 3}
-  local col = {1, 2}
-  local msg = { "invalid write access to readonly mtable" }
-  tbl:addrow(row)
-  tbl:addrow(row)
+  tbl:addrow{"name1", 1, 2, 3}
+  tbl:addrow{"name2", 4, 5, 6}
 
   tbl:set_readonly()
-  assertErrorMsgContains(_msg[1], mtable.addrow   , tbl, row              )
-  assertErrorMsgContains(_msg[1], mtable.remrow   , tbl, 1                )
-  assertErrorMsgContains(_msg[1], mtable.insrow   , tbl, 1    , row       )
-  assertErrorMsgContains(_msg[1], mtable.setrow   , tbl, 1                )
-  assertErrorMsgContains(_msg[1], mtable.setrow   , tbl, 1    , row       )
-  assertErrorMsgContains(_msg[1], mtable.swprow   , tbl, 1    , 2         )
-  assertErrorMsgContains(_msg[1], mtable.addcol   , tbl, "col", col       )
-  assertErrorMsgContains(_msg[1], mtable.inscol   , tbl, 1    , "col", col)
-  assertErrorMsgContains(_msg[1], mtable.setcol   , tbl, "x"  , col       )
-  assertErrorMsgContains(_msg[1], mtable.set      , tbl, 1    , 1    , 2  )
-  assertErrorMsgContains(_msg[1], mtable.make_dict, tbl, "x"              )
-  assertErrorMsgContains(_msg[1], mtable.sort     , tbl, \ ()             )
-  assertErrorMsgContains(_msg[1], mtable.remove   , tbl                   )
-  assertErrorMsgContains(_msg[1], mtable.insert   , tbl                   )
-  assertErrorMsgContains( msg[1], mtable.cycle    , tbl, 2                )
+  tbl:addrow{"name3", 7, 8, 9}
+  tbl:setrow("name2", {"name2", 10, 11, 12})
+  tbl:addcol("col", {13, 14, 15})
+  tbl:set("name1", "x", 42)
+
+  assertEquals(#tbl, 3)
+  assertEquals(tbl.name1.x, 42)
+  assertEquals(tbl.name2.y, 11)
+  assertVecEquals(tbl.col, {13, 14, 15})
+  assertErrorMsgContains(_msg[1], mtable.cycle, tbl, 2)
 end
 
 function TestMTable:testSetReadOnlyView()
   local tbl  = mtable "tbl"  { {"dict"}, "x", "y", "z"}
   local view = tbl "view" { }
-  local row = {"name", 1, 2, 3}
-  local col = {1, 2}
-  local msg = { "invalid write access to readonly mtable" }
-  view:addrow(row)
-  view:addrow(row)
+  view:addrow{"name1", 1, 2, 3}
+  view:addrow{"name2", 4, 5, 6}
 
   view:set_readonly()
-  assertErrorMsgContains(_msg[1], mtable.addrow   , view, row              )
-  assertErrorMsgContains(_msg[1], mtable.remrow   , view, 1                )
-  assertErrorMsgContains(_msg[1], mtable.insrow   , view, 1    , row       )
-  assertErrorMsgContains(_msg[1], mtable.setrow   , view, 1    , row       )
-  assertErrorMsgContains(_msg[1], mtable.setrow   , view, 1                )
-  assertErrorMsgContains(_msg[1], mtable.swprow   , view, 1    , 2         )
-  assertErrorMsgContains(_msg[1], mtable.addcol   , view, "col", col       )
-  assertErrorMsgContains(_msg[1], mtable.inscol   , view, 1    , "col", col)
-  assertErrorMsgContains(_msg[1], mtable.setcol   , view, "x"  , col       )
-  assertErrorMsgContains(_msg[1], mtable.set      , view, 1    , 1    , 2  )
-  assertErrorMsgContains(_msg[1], mtable.make_dict, view, "x"              )
-  assertErrorMsgContains(_msg[1], mtable.sort     , view, \ ()             )
-  assertErrorMsgContains(_msg[1], mtable.remove   , view                   )
-  assertErrorMsgContains(_msg[1], mtable.insert   , view                   )
-  assertErrorMsgContains( msg[1], mtable.cycle    , view, 2                )
+  view:addrow{"name3", 7, 8, 9}
+  view:setrow("name2", {"name2", 10, 11, 12})
+  view:addcol("col", {13, 14, 15})
+  view:set("name1", "x", 42)
+
+  assertEquals(#view, 3)
+  assertEquals(#tbl , 3)
+  assertEquals(view.name1.x, 42)
+  assertEquals(view.name2.y, 11)
+  assertVecEquals(view.col, {13, 14, 15})
+  assertVecEquals(tbl .col, {13, 14, 15})
+  assertErrorMsgContains(_msg[1], mtable.cycle, view, 2)
 end
 
 function TestMTable:testSetReadOnlyOwnerView()
   local tbl  = mtable "tbl"  { {"dict"}, "x", "y", "z"}
   local view = tbl "view" { }
-  local row = {"name", 1, 2, 3}
-  local col = {1, 2}
-  view:addrow(row)
-  view:addrow(row)
+  view:addrow{"name1", 1, 2, 3}
+  view:addrow{"name2", 4, 5, 6}
 
   tbl:set_readonly()
-  assertErrorMsgContains(_msg[1], mtable.addrow   , view, row              )
-  assertErrorMsgContains(_msg[1], mtable.remrow   , view, 1                )
-  assertErrorMsgContains(_msg[1], mtable.insrow   , view, 1    , row       )
-  assertErrorMsgContains(_msg[1], mtable.setrow   , view, 1    , row       )
-  assertErrorMsgContains(_msg[1], mtable.setrow   , view, 1                )
-  assertErrorMsgContains(_msg[1], mtable.swprow   , view, 1    , 2         )
-  assertErrorMsgContains(_msg[1], mtable.addcol   , view, "col", col       )
-  assertErrorMsgContains(_msg[1], mtable.inscol   , view, 1    , "col", col)
-  assertErrorMsgContains(_msg[1], mtable.setcol   , view, "x"  , col       )
-  assertErrorMsgContains(_msg[1], mtable.set      , view, 1    , 1    , 2  )
-  assertErrorMsgContains(_msg[1], mtable.make_dict, view, "x"              )
-  assertErrorMsgContains(_msg[1], mtable.sort     , view, \ ()             )
-  assertErrorMsgContains(_msg[1], mtable.remove   , view                   )
-  assertErrorMsgContains(_msg[1], mtable.insert   , view                   )
-  view:cycle(2)
+  view:addrow{"name3", 7, 8, 9}
+  view:setrow("name2", {"name2", 10, 11, 12})
+  view:addcol("col", {13, 14, 15})
+  view:set("name1", "x", 42)
+
+  assertEquals(#view, 3)
+  assertEquals(#tbl , 3)
+  assertEquals(view.name1.x, 42)
+  assertEquals(tbl .name2.y, 11)
+  assertVecEquals(view.col, {13, 14, 15})
+  assertEquals(view:cycle(2), view)
 end
 
 function TestMTable:testDebug()
@@ -4140,15 +4118,14 @@ function TestMTable:testSetReadOnlyProxy()
   local row2 = {"name2", 1, 2, 3}
   tbl:addrow(row1); tbl:addrow(row2); tbl:addrow(row1)
   tbl:set_readonly()
-  local msg = {
-    "attempt to write to constant location",
-    "invalid use of object <mtable readonly column:",
-    "invalid use of object <mtable count:",
-  }
 
-  assertErrorMsgContains( msg[1], assign1, tbl:getcol("x"), 1, 42  )
-  assertErrorMsgContains(_msg[1], assign2, tbl, "name2", "x", 42   )
-  assertErrorMsgContains(_msg[1], assign3, tbl, "name1", 2, "x", 42)
+  assign1(tbl:getcol("x"), 1, 42)
+  assign2(tbl, "name2", "x", 43)
+  assign3(tbl, "name1", 2, "x", 44)
+
+  assertEquals(tbl:getcol("x")[1], 42)
+  assertEquals(tbl.name2.x       , 43)
+  assertEquals(tbl.name1[2].x    , 44)
 end
 
 function TestMTable:testSetUnsetReadOnly()
@@ -4489,7 +4466,10 @@ function TestMTable:testKpairsCol()
   local tbl1, tbl2, tbl3  = getIdxTbl()
   for _,tbl in ipairs{tbl1, tbl2, tbl3} do
     tbl:addcol("gen", \i -> i)
-    for i=0,tbl:ncol() do check_kpairs(tbl:getcol(i)) end
+    for i=0,tbl:ncol() do
+      local col = tbl:getcol(i)
+      if is_mappable(col) then check_kpairs(col) end
+    end
   end
 end
 
@@ -4514,7 +4494,10 @@ function TestMTable:testKpairsReadOnlyCol()
   for _,tbl in ipairs{tbl1, tbl2, tbl3} do
     tbl:addcol("gen", \i -> i)
     tbl:set_readonly()
-    for i=0,tbl:ncol() do check_kpairs(tbl:getcol(i)) end
+    for i=0,tbl:ncol() do
+      local col = tbl:getcol(i)
+      if is_mappable(col) then check_kpairs(col) end
+    end
   end
 end
 

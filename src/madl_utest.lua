@@ -1461,8 +1461,39 @@ function M.assertAlmostEquals( actual, expected, margin, extra_msg_or_nil )
     end
 end
 
--- Ancien general variant of assertEquals for tables (with margin)
-M.assertAllAlmostEquals = M.assertAlmostEquals
+-- General variant of assertEquals for tables with scalar or per-entry margins.
+function M.assertAllAlmostEquals( actual, expected, margin )
+    if (type(actual)   ~= 'table'                               ) or
+       (type(expected) ~= 'table' and type(expected) ~= 'number') or
+       (type(margin)   ~= 'table' and type(margin)   ~= 'number' and margin ~= nil) then
+        error_fmt(3, 'assertAllAlmostEquals: must supply only number or table arguments.\nArguments supplied: %s, %s, %s',
+            prettystr(actual), prettystr(expected), prettystr(margin))
+    end
+
+    if type(expected) ~= 'table' then
+        local value = expected
+        expected = {}
+        for k in pairs(actual) do
+            expected[k] = value
+        end
+    end
+
+    if type(margin) ~= 'table' then
+        local value = margin
+        margin = {}
+        for k in pairs(actual) do
+            margin[k] = value
+        end
+    end
+
+    for k, v in pairs(actual) do
+        if type(v) == 'number' and margin[k] ~= 0 then
+            M.assertAlmostEquals(v, expected[k], margin[k])
+        else
+            M.assertEquals(v, expected[k])
+        end
+    end
+end
 
 function M.assertNotEquals(actual, expected, extra_msg_or_nil)
     assertCount = assertCount + 1

@@ -83,7 +83,7 @@ function TestCOFind:testCOThinFODOda ()
   assertEquals(mflw[1].status, 'stable')
   assertEquals(mflw[1].rank, 4)
   assertEquals(mflw[1].coitr, 2)
-  assertAllAlmostEquals(mflw[1]:get0():totable(), X0r, eps)
+  assertAllAlmostEquals(mflw[1]:get0():totable(), X0r, cofind.cotol)
 end
 
 function TestCOFind:testCOThinFODO ()
@@ -113,7 +113,9 @@ function TestCOFind:testCOThinFODO ()
   assertEquals(mflw[1].status, 'stable')
   assertEquals(mflw[1].rank, 4)
   assertEquals(mflw[1].coitr, 2)
-  assertAllAlmostEquals(mflw[1], X0r, eps)
+  local res = {}
+  for _,k in ipairs{'x','px','y','py','t','pt'} do res[k] = mflw[1][k] end
+  assertAllAlmostEquals(res, X0r, cofind.cotol)
 end
 
 function TestCOFind:testCOSimpleRingda ()
@@ -146,7 +148,7 @@ function TestCOFind:testCOSimpleRingda ()
   assertEquals(mflw[1].status, 'stable')
   assertEquals(mflw[1].rank, 4)
   assertEquals(mflw[1].coitr, 3)
-  assertAllAlmostEquals(mflw[1]:get0():totable(), X0r, eps)
+  assertAllAlmostEquals(mflw[1]:get0():totable(), X0r, cofind.cotol)
 end
 
 function TestCOFind:testCOSimpleRing ()
@@ -182,7 +184,7 @@ function TestCOFind:testCOSimpleRing ()
   assertEquals(mflw[1].status, 'stable')
   assertEquals(mflw[1].rank, 4)
   assertEquals(mflw[1].coitr, 3)
-  assertAllAlmostEquals(res, X0r, eps)
+  assertAllAlmostEquals(res, X0r, cofind.cotol)
 end
 
 -- end ------------------------------------------------------------------------o

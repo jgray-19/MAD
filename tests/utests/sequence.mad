@@ -1792,52 +1792,56 @@ end
 
 function TestSequence:testCycleNum()
   local seq = getIdxSeq()
-  local idx = { 4, 5, 6, 1, 2, 3 }
-  local i, c = 1, seq:index_of(3)
-  seq:cycle(3) -- 3m is at index 4
+  local idx = { 5, 6, 1, 2, 3, 4, 5 }
+  local i = 1
+  seq:cycle(4) -- 4m is at index 5
   for j,elm in seq:iter() do
     assertIs(elm, seq[j])
     assertEquals(j, idx[i])
     i = i + 1
   end
-  assertEquals(i, 7)
+  assertEquals(i, 8)
 end
 
 function TestSequence:testCycleName()
   local seq  = getIdxSeq()
-  local idx1 = { 3, 4, 5, 6, 1, 2 }
-  local idx2 = { 4, 5, 6, 1, 2, 3 }
+  local idx1 = { 2, 3, 4, 5, 6, 1, 2 }
+  local idx2 = { 5, 6, 1, 2, 3, 4, 5 }
   local i = 1
-  seq:cycle("name2")
+  seq:cycle("name1")
   for j,elm in seq:iter() do
     assertIs(elm, seq[j])
     assertEquals(j, idx1[i])
     i = i + 1
   end
-  assertEquals(i, 7)
+  assertEquals(i, 8)
 
   i = 1
-  seq:cycle("name1[2]")
+  seq:cycle("name1[3]")
   for j,elm in seq:iter() do
     assertIs    (elm, seq [j])
     assertEquals(j  , idx2[i])
     i = i + 1
   end
-  assertEquals(i, 7)
+  assertEquals(i, 8)
 end
 
 function TestSequence:testCycleInvalid()
   local seq = getIdxSeq()
   local msg = {
     "invalid argument #2 (valid reference expected)",
+    "invalid argument #2 (invalid reference to non-marker)",
     "invalid write access to readonly sequence",
   }
   assertErrorMsgContains(msg[1], sequence.cycle, seq, 5.1   )
   assertErrorMsgContains(msg[1], sequence.cycle, seq,-5.1   )
   assertErrorMsgContains(msg[1], sequence.cycle, seq, "none")
+  assertErrorMsgContains(msg[2], sequence.cycle, seq, 3      )
+  assertErrorMsgContains(msg[2], sequence.cycle, seq, "name2")
+  assertErrorMsgContains(msg[2], sequence.cycle, seq, "name1[2]")
 
   seq:set_readonly()
-  assertErrorMsgContains(msg[2], sequence.cycle, seq, 1)
+  assertErrorMsgContains(msg[3], sequence.cycle, seq, 1)
 end
 
 function TestSequence:testSiterEmptySeq()
@@ -2788,17 +2792,16 @@ function TestSequence:testCopyViewOwner()
   local seq  = getIdxSeq()
   local view = seq "view" { }
   local cpy1 = view:copy()
-  local cpy2 = view:copy(nil, true)
-  local cpy3 = view:copy(true)      -- shift right
-  for _,cpy in ipairs{cpy1, cpy2, cpy3} do
+  local cpy2 = view:copy("view2")
+  for _,cpy in ipairs{cpy1, cpy2} do
     assertEquals(#cpy, #seq)
     for i=1,4 do
       assertElem(cpy[i], seq[i])
     end
   end
   assertTrue (cpy1:is_view())
-  assertFalse(cpy2:is_view())
-  assertFalse(cpy3:is_view())
+  assertTrue (cpy2:is_view())
+  assertEquals(cpy2.name, "view2")
 end
 
 function TestSequence:testCopyDict()
@@ -2861,7 +2864,6 @@ end
 
 function TestSequence:testFlags()
   local clr, flgs = object.clear_flags, {}
-  local fbit in MAD.operator
   local seq = getIdxSeq()
   for i=1,#seq do clr(seq[i],-1) seq[i]:set_flags(  fbit(2) ) end flgs[1] = seq:save_flags()
   for i=1,#seq do clr(seq[i],-1) seq[i]:set_flags(  fbit(3) ) end flgs[2] = seq:save_flags()

@@ -771,6 +771,7 @@ local function get_cel (tbl, row, col, cnt_)
       ri = ri[ ireflect(cnt, ri.n) ]
     end
   end
+  if is_nil(ri) then return nil end
   return data[ci][ri]
 end
 
@@ -978,6 +979,9 @@ end
 local function add_row (tbl, val)
   assert(is_mtable(tbl), "invalid argument #1 (mtable expected)")
   assert(is_iterable(val), "invalid argument #2 (iterable expected)")
+  assert(not rawequal(tbl, mtable) and
+         not (tbl:is_view() and rawequal(tbl.parent, mtable)),
+         "invalid write access to readonly mtable")
   local data = tbl.__dat
   assert(is_nil(data.cref) or val[data.cref] or val[data.cidx[data.cref]],
                                     "invalid argument #3 (nil reference value)")
@@ -1031,8 +1035,9 @@ local function rem_row (tbl, key, ref_)
   rem_idx(data, ri) -- remove before update
   shf_idx(data, ri, -1)
   for ci=0,data.nc-data.ng do
-    if isa_matrix(data[ci])
-    then data[ci]:shiftv(ri, -1):seti(nr, 0):reshape(nr-1)
+    if isa_matrix(data[ci]) then
+      if ri < nr then data[ci]:shiftv(ri+1, -1) end
+      data[ci]:seti(nr, 0):reshape(nr-1)
     else table.move(data[ci], ri+1, nr, ri)[nr] = nil
   end end
   data.nr = nr-1
@@ -1075,9 +1080,11 @@ local function foreach (tbl, act, rng_, sel_, not_) -- action, range, selection,
     if is_nil(sel_) then sel_ = act         end
     act = act.action
   end
+  if not_ == 'none' then not_ = true end
 
   local data, p = tbl.__dat
   if is_rawtable(sel_) then       -- logically and'ed selections
+    if is_nil(rng_) then rng_ = sel_.range end
     if is_nil(not_) and (sel_.default == 'none' or sel_.default == true) then
       not_ = true
     end
@@ -1610,11 +1617,17 @@ local function read (tbl, filnam_)
         assertf(hnam[row[2]] ~= nil, -- cannot assert false
                         "invalid header format (missing boolean, line %d)", ln)
       elseif typ == 's' then                              -- string
-        hnam[row[2]] = assertf(strquote(row[4]),
+        local str = assertf(strquote(row[4]),
                         "invalid header format (missing string, line %d)", ln)
+        assertf(#str == tonumber(string.sub(row[3],2,-2)),
+                        "invalid header format (unmatched string length, line %d)", ln)
+        hnam[row[2]] = str
       elseif typ == 't' then                              -- table
-        hnam[row[2]] = assertf(str2tbl(row, 4, ncol),
-                        "invalid header format (missing table, line %d)", ln)
+        local val, n = str2tbl(row, 4, ncol)
+        assertf(val, "invalid header format (missing table, line %d)", ln)
+        assertf(n == tonumber(string.sub(row[3],2,-2)),
+                        "invalid header format (unmatched table length, line %d)", ln)
+        hnam[row[2]] = val
       else                                               -- invalid
         error("invalid header field type: '"..typ.."'")
       end

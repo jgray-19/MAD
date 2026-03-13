@@ -25,7 +25,7 @@
 
 local assertNil, assertTrue, assertFalse, assertEquals, assertNotEquals,
       assertAlmostEquals, assertStrContains, assertErrorMsgContains,
-      assertNotNil in MAD.utest
+      assertNotNil, assertIs in MAD.utest
 
 local object        in MAD
 local functor, fbit in MAD.gfunc
@@ -343,10 +343,10 @@ function TestObject:testSetGetFlags()
   local p3 = object
   local p00 = p0 'p00' {}
 
-  assertEquals(p0:set_flags(-1), p0)
-  assertEquals(p1:set_flags(-1), p1)
-  assertEquals(p2:set_flags(-1), p2)
-  assertEquals(p3:set_flags(-1), p3)
+  assertIs(p0:set_flags(-1), p0)
+  assertIs(p1:set_flags(-1), p1)
+  assertIs(p2:set_flags(-1), p2)
+  assertIs(p3:set_flags(-1), p3)
 
   -- new: get_flags does not return bits 29..31 state
   assertEquals(p0:get_flags(), 0x1fffffff) -- object (class+        )
@@ -689,10 +689,8 @@ function TestObjectErr:testSetVariables()
   local p0 = object 'p0' { x=1 }
   local p1 = p0 'p1' { y={} }
   local p2 = p0 'p2' {}:set_readonly()
-  local vs = {'name', 'x','y','z'}
   local msg = {
     "invalid argument #2 (mappable expected)",
-    "cannot override variable"
   }
 
   for i=1,#objectErr+1 do
@@ -707,8 +705,10 @@ function TestObjectErr:testSetVariables()
   assertErrorMsgContains(msg[1], p0.setvar, p0, "")
   assertErrorMsgContains(msg[1], p0.setvar, p0, \ ())
 
-  assertErrorMsgContains(msg[2], p0.setvar, p0, {x=2}, false) --No error thrown since ovrd policy updated on 11 Jan 2021 in " remove cachemethod variant replaced by objalt, add __par, update ovrd… "
-  assertErrorMsgContains(msg[2], p1.setvar, p1, {y=2}, false) --No error thrown since ovrd policy updated on 11 Jan 2021 in " remove cachemethod variant replaced by objalt, add __par, update ovrd… "
+  assertIs(p0:setvar({x=2}, false), p0)
+  assertEquals(p0.x, 2)
+  assertIs(p1:setvar({y=2}, false), p1)
+  assertEquals(p1.y, 2)
 end
 
 function TestObject:testWrapVariables()
@@ -826,8 +826,6 @@ function TestObjectErr:testSetMethods()
     "invalid argument #2 (mappable expected)",
     "invalid key '1' (string expected)",
     "invalid value for key 'x' (callable expected)",
-    "cannot set methods to 'p0' (unexpected class)",
-    "cannot override method 'y'",
   }
 
   for i=1,#objectErr+1 do
@@ -849,8 +847,10 @@ function TestObjectErr:testSetMethods()
   assertErrorMsgContains(msg[3], p0.set_methods, p1, {x=""},        'init')
   assertErrorMsgContains(msg[3], p0.set_methods, p1, {x={}},        'init')
 
-  assertErrorMsgContains(msg[4], p0.set_methods, p0, {x:=3}, false) --No error thrown since ovrd policy updated on 11 Jan 2021 in " remove cachemethod variant replaced by objalt, add __par, update ovrd… "
-  assertErrorMsgContains(msg[5], p1.set_methods, p1, {y:=3}, false) --No error thrown since ovrd policy updated on 11 Jan 2021 in " remove cachemethod variant replaced by objalt, add __par, update ovrd… "
+  assertIs(p0:set_methods({x:=3}, false), p0)
+  assertEquals(p0:x(), 3)
+  assertIs(p1:set_methods({y:=3}, false), p1)
+  assertEquals(p1:y(), 3)
 end
 
 function TestObject:testSetMetamethod()
@@ -964,11 +964,11 @@ function TestObject:testInsert()
   local p0 = object 'p0' { 1, 2, 3 }
   local p1 = p0 'p1' { }
 
-  assertEquals(p0:insert(4,4), p0)
+  assertIs(p0:insert(4,4), p0)
   assertEquals(p0[4], 4)
   assertEquals(p1[4], 4)
 
-  assertEquals(p1:insert(5,5), p1)
+  assertIs(p1:insert(5,5), p1)
   assertEquals(p1[5], 5)
 
   p0:insert(2,"test")
@@ -1048,10 +1048,10 @@ end
 function TestObject:testBsearch()
   local p0 = object 'p0' { 1, 2, 2, 2, 3, 4, 5 }
 
-  local lt, le, gt, ge in MAD.operator
+  local lt, le, gt, ge in MAD.lfun.operator
 
   local res, resEq = {}, {}
-  for i in ipairs(1..7) do
+  for i=1,7 do
     res[i]   = p0:bsearch(i, le)
     resEq[i] = p0:bsearch(i, lt)
   end
@@ -1061,7 +1061,7 @@ function TestObject:testBsearch()
 
   res, resEq = {}, {}
   p0:sort(gt)
-  for i in ipairs(1..7)  do
+  for i=1,7 do
     res[i]   = p0:bsearch(i, gt)
     resEq[i] = p0:bsearch(i, ge)
   end
@@ -1081,7 +1081,7 @@ end
 function TestObject:testSort()
   local p0 = object 'p0' { 1, 5, 2, -10, 3, 4, 2, 200 }
   local p1 = p0 'p1' { }
-  local lt, gt in MAD.operator
+  local lt, gt in MAD.lfun.operator
 
   p0:sort(lt)
   assertEquals(p0:getvar{1,2,3,4,5,6,7,8}, {-10,1,2,2,3,4,5,200})
@@ -1116,13 +1116,13 @@ function TestObject:testClearArray()
   local tbl = {x=1, y=true, z="", z2={}, z3 =f}
 
   -- no inheritance
-  assertEquals(p1:clear_array(), p1)
+  assertIs(p1:clear_array(), p1)
   assertEquals(p0:getvar(name, true), tbl)
   assertEquals(p1:getvar(name, true), tbl)
   assertEquals(#p1, 5)
   assertEquals(#p0, 5)
 
-  assertEquals(p0:clear_array(), p0)
+  assertIs(p0:clear_array(), p0)
   assertEquals(p0:getvar(name, true), tbl)
   assertEquals(p1:getvar(name, true), tbl)
   assertEquals(#p1, 0)
@@ -1159,13 +1159,13 @@ function TestObject:testClearVariables()
   local tbl = {x=1, y=true, z="", z2={}, z3 =f}
 
   -- no inheritance
-  assertEquals(p1:clear_variables(), p1)
+  assertIs(p1:clear_variables(), p1)
   assertEquals(p0:getvar(name, true), tbl)
   assertEquals(p1:getvar(name, true), tbl)
   assertEquals(#p1, 5)
   assertEquals(#p0, 5)
 
-  assertEquals(p0:clear_variables(), p0)
+  assertIs(p0:clear_variables(), p0)
   assertEquals(p0:getvar(name, true), {})
   assertEquals(p1:getvar(name, true), {})
   assertEquals(#p1, 5)
@@ -1206,13 +1206,13 @@ function TestObject:testClearAll()
   local tbl = {x=1, y=true, z="", z2={}, z3 =f}
 
   -- no inheritance
-  assertEquals(p1:clear_all(), p1)
+  assertIs(p1:clear_all(), p1)
   assertEquals(p0:getvar(name, true), tbl)
   assertEquals(p1:getvar(name, true), tbl)
   assertEquals(#p1, 5)
   assertEquals(#p0, 5)
 
-  assertEquals(p0:clear_all(), p0)
+  assertIs(p0:clear_all(), p0)
   assertEquals(p0:getvar(name, true), {})
   assertEquals(p1:getvar(name, true), {})
   assertEquals(#p1, 0)
@@ -1464,7 +1464,7 @@ function TestObject:testEnvSelfRef()
   p0:open_env()
     assertTrue  (p0:is_open_env())
     assertTrue  (is_object(p0.p0))
-    assertEquals(p0.p0, p0)
+    assertIs(p0.p0, p0)
   p0:close_env()
 
   assertFalse (p0:is_open_env())
