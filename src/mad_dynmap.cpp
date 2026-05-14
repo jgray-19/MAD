@@ -24,7 +24,6 @@
 // --- includes ---------------------------------------------------------------o
 
 #include <type_traits>
-#include "mad_omp.h"
 #include "mad_tpsa.hpp"
 
 extern "C" {
@@ -171,7 +170,7 @@ using namespace mad;
 template <typename M, typename T=M::T>
 inline void (mdump) (cflw<M> &m, str_t s, int n)
 {
-  if (!m.dbg) return;
+  if (!m.dbg) return; // dbg = debug-3
 
   char fun[50];
   snprintf(fun, 50, "%s:%d", s, n);
@@ -181,12 +180,22 @@ inline void (mdump) (cflw<M> &m, str_t s, int n)
 
   M p(m,0);
   if constexpr (std::is_floating_point<T>::value)
-    printf("% -.16e  % -.16e  % -.16e  % -.16e  % -.16e  % -.16e\n",
+    printf("% -.16e  % -.16e  % -.16e  % -.16e  % -.16e  % -.16e",
                 p.x,    p.px,     p.y,    p.py,     p.t,    p.pt);
-  else if (m.dbg < 4)
-    printf("% -.16e  % -.16e  % -.16e  % -.16e  % -.16e  % -.16e\n",
+  else if (m.dbg == 1)
+    printf("% -.16e  % -.16e  % -.16e  % -.16e  % -.16e  % -.16e",
              p.x[0], p.px[0],  p.y[0], p.py[0],  p.t[0], p.pt[0]);
-  else if (n) {
+  else if (m.dbg == 2) {
+    printf("% -.16e  % -.16e  % -.16e  % -.16e  % -.16e  % -.16e  ",
+             p.x[0], p.px[0],  p.y[0], p.py[0],  p.t[0], p.pt[0]);
+    FOR(i,1,7) { printf("% -.16e  ", p. x[i]); }
+    FOR(i,1,7) { printf("% -.16e  ", p.px[i]); }
+    FOR(i,1,7) { printf("% -.16e  ", p. y[i]); }
+    FOR(i,1,7) { printf("% -.16e  ", p.py[i]); }
+    FOR(i,1,7) { printf("% -.16e  ", p. t[i]); }
+    FOR(i,1,6) { printf("% -.16e  ", p.pt[i]); } printf("% -.16e ", p.pt[6]);
+  }
+  else if (n) { // only on exit
     printf("\n");
     stdout << p.x .set("X" )
            << p.px.set("PX")
@@ -194,8 +203,8 @@ inline void (mdump) (cflw<M> &m, str_t s, int n)
            << p.py.set("PY")
            << p.t .set("T" )
            << p.pt.set("PT");
-    printf("\n");
   }
+  printf("\n");
 }
 
 template <typename M, typename T=M::T>
