@@ -298,9 +298,8 @@ inline void xrotation (cflw<M> &m, num_t lw, const V &dphi_)
   FOR(i,m.npar) {
     M p(m,i);
     T   pz = sqrt(1 + 2/m.beta*p.pt + sqr(p.pt) - sqr(p.px) - sqr(p.py));
-    T  _pz = 1/pz;
-    T _ptt = p.y/(1 - ta*p.py*_pz);
-    T _pzt = ta*_pz*_ptt;
+    T _ptt = p.y/(1 - ta*p.py/pz);
+    T _pzt = ta*_ptt/pz;
 
     // eq. 127 in Forest06
     p.y   = _ptt/ca;
@@ -324,9 +323,8 @@ inline void yrotation (cflw<M> &m, num_t lw, const V &dthe_)
   FOR(i,m.npar) {
     M p(m,i);
     T   pz = sqrt(1 + 2/m.beta*p.pt + sqr(p.pt) - sqr(p.px) - sqr(p.py));
-    T  _pz = inv(pz);
-    T _ptt = p.x/(1 - ta*p.px*_pz);
-    T _pzt = ta*_pz*_ptt;
+    T _ptt = p.x/(1 - ta*p.px/pz);
+    T _pzt = ta*_ptt/pz;
 
     // eq. 127 in Forest06
     p.x   = _ptt/ca;
@@ -627,10 +625,9 @@ inline void curex_drift (cflw<M> &m, num_t lw, int is)
   FOR(i,m.npar) {
     M p(m,i);
     T   pz = sqrt(1 + 2/m.beta*p.pt + sqr(p.pt) - sqr(p.px) - sqr(p.py));
-    T  _pz = inv(pz);
-    T  pxt = p.px*_pz;
+    T  pxt = p.px/pz;
     T _ptt = inv(ca - sa*pxt);
-    T  pst = (p.x+rho)*sa*_pz*_ptt;
+    T  pst = (p.x+rho)*sa*_ptt/pz;
 
     p.x  = (p.x + rho*(2*sqr(sa2) + sa*pxt))*_ptt;
     p.px = ca*p.px + sa*pz;
