@@ -26,12 +26,23 @@
 
 // --- includes ---------------------------------------------------------------o
 
-#include <complex>
-#include "mad_tpsa.hpp"
-
 extern "C" {
 #include "mad_ctpsa.h"
 }
+
+#include <complex>
+#include "mad_tpsa.hpp"
+
+// --- trace ------------------------------------------------------------------o
+
+#if TPSA_USE_TRC && !TRC
+#define TRC(...) \
+  ((void)(mad_tpsa_dbgf > 1 && ( \
+    printf("%s:%3d:%12s: ", __FILE__, __LINE__, __func__), \
+    printf(__VA_ARGS__), printf("\n"))));
+#else
+#define TRC(...)
+#endif
 
 // --- types ------------------------------------------------------------------o
 
@@ -45,6 +56,8 @@ namespace mad {
 struct ctpsa;
 struct ctpsa_ref;
 namespace mad_prv_ { struct ctpsa_tmp_; }
+
+#undef CPX
 using CPX = std::complex<double>;
 
 // public abstract class implementing interface for ctpsa and ctpsa_ref.
@@ -179,9 +192,9 @@ struct ctpsa : ctpsa_base<ctpsa> {
   explicit ctpsa(const ctpsa_base<A> &a)           : t(mad_ctpsa_new(a.ptr(),same)) { TRC("&baz! %p", (void*)t.get()) }
   template <class A>
   explicit ctpsa(const ctpsa_base<A> &a, ord_t mo) : t(mad_ctpsa_new(a.ptr(),mo  )) { TRC("&baz,ord! %p", (void*)t.get()) }
-  template <class A>
+  template <class A, class B>
   explicit ctpsa(const ctpsa_base<A> &a,
-                 const ctpsa_base<A> &b) : t(mad_ctpsa_new(a.ptr(),std::max(a.mo(), b.mo()))) { TRC("&baz,&baz! %p", (void*)t.get()) }
+                 const ctpsa_base<B> &b) : t(mad_ctpsa_new(a.ptr(),std::max(a.mo(), b.mo()))) { TRC("&baz,&baz! %p", (void*)t.get()) }
 
   template <class A>
   explicit ctpsa(const tpsa_base<A> &re) { TRC("&baz! %p", (void*)t.get()); mad_ctpsa_cplx(re.ptr(), NULL, t.get()); }
@@ -190,7 +203,7 @@ struct ctpsa : ctpsa_base<ctpsa> {
                  const tpsa_base<A> &im) { TRC("&baz,&baz! %p", (void*)t.get()); mad_ctpsa_cplx(re.ptr(), im.ptr(), t.get()); }
 
 #if !TPSA_USE_TMP
-  ctpsa(ctpsa &&a) : t(a.ptr()) { TRC("<tpa") } // move ctor
+  ctpsa(ctpsa &&a) : t(std::move(a.t)) { TRC("<tpa") } // move ctor
 #endif
 
   ctpsa_t* ptr () const { return t.get(); }
@@ -306,19 +319,19 @@ inline ctpsa::ctpsa(const ctpsa_base<A> &a, const T &b) {
 
 template <class A>
 inline R real (const ctpsa_base<A> &a) {  TRC("re(baz)")
-  R c(a.mo()); mad_ctpsa_real(a.ptr(),c.ptr()); return c;
+  R c(tpsa_ref((tpsa_t*)a.ptr())); mad_ctpsa_real(a.ptr(),c.ptr()); return c;
 }
 
 template <class A>
 inline R imag (const ctpsa_base<A> &a) {  TRC("im(baz)")
-  R c(a.mo()); mad_ctpsa_imag(a.ptr(),c.ptr()); return c;
+  R c(tpsa_ref((tpsa_t*)a.ptr())); mad_ctpsa_imag(a.ptr(),c.ptr()); return c;
 }
 
 // --- unary ---
 
 template <class A>
-inline T operator+ (const ctpsa_base<A> &a) {  TRC("+baz")
-  T c(a); mad_ctpsa_copy(a.ptr(), c.ptr()); return c;
+inline const A& operator+ (const ctpsa_base<A> &a) {  TRC("+baz")
+  return static_cast<const A&>(a);
 }
 
 template <class A>
@@ -328,8 +341,8 @@ inline T operator- (const ctpsa_base<A> &a) {  TRC("-baz")
 
 #if TPSA_USE_TMP
 
-inline T operator+ (const T &a) {  TRC("+tmp")
-  T c(a); return c;
+inline const T& operator+ (const T &a) {  TRC("+tmp")
+  return a;
 }
 
 inline T operator- (const T &a) {  TRC("-tmp")
@@ -363,15 +376,15 @@ inline T operator+ (const ctpsa_base<A> &a, CPX b) {  TRC("baz+num")
 template <class A>
 inline T operator+ (const ctpsa_base<A> &a, const T &b) {  TRC("baz+tmp")
   T c(a,b);
-  if (a.ptr()) mad_ctpsa_add(a.ptr(), c.ptr(), c.ptr());
-  else         mad_ctpsa_add(c.ptr(), b.ptr(), c.ptr());
+  if (b.ptr()) mad_ctpsa_add(a.ptr(), b.ptr(), c.ptr());
+  else         mad_ctpsa_add(a.ptr(), c.ptr(), c.ptr());
   return c;
 }
 
 template <class A>
 inline T operator+ (const T &a, const ctpsa_base<A> &b) {  TRC("tmp+baz")
   T c(a,b);
-  if (a.ptr()) mad_ctpsa_add(a.ptr(), c.ptr(), c.ptr());
+  if (a.ptr()) mad_ctpsa_add(a.ptr(), b.ptr(), c.ptr());
   else         mad_ctpsa_add(c.ptr(), b.ptr(), c.ptr());
   return c;
 }
@@ -421,15 +434,15 @@ inline T operator- (CPX a, const ctpsa_base<A> &b) {  TRC("num-baz")
 template <class A>
 inline T operator- (const ctpsa_base<A> &a, const T &b) {  TRC("baz-tmp")
   T c(a,b);
-  if (a.ptr()) mad_ctpsa_sub(a.ptr(), c.ptr(), c.ptr());
-  else         mad_ctpsa_sub(c.ptr(), b.ptr(), c.ptr());
+  if (b.ptr()) mad_ctpsa_sub(a.ptr(), b.ptr(), c.ptr());
+  else         mad_ctpsa_sub(a.ptr(), c.ptr(), c.ptr());
   return c;
 }
 
 template <class A>
 inline T operator- (const T &a, const ctpsa_base<A> &b) {  TRC("tmp-baz")
   T c(a,b);
-  if (a.ptr()) mad_ctpsa_sub(a.ptr(), c.ptr(), c.ptr());
+  if (a.ptr()) mad_ctpsa_sub(a.ptr(), b.ptr(), c.ptr());
   else         mad_ctpsa_sub(c.ptr(), b.ptr(), c.ptr());
   return c;
 }
@@ -560,7 +573,7 @@ inline T pow (CPX a, const T &b) {  TRC("num^tmp")
 
 template <class A, class B>
 inline T hypot (const ctpsa_base<A> &a, const ctpsa_base<B> &b) {  TRC("baz,baz")
-  T c(a); mad_ctpsa_hypot(a.ptr(), b.ptr(), c.ptr()); return c;
+  T c(a,b); mad_ctpsa_hypot(a.ptr(), b.ptr(), c.ptr()); return c;
 }
 
 // --- I/O ---
@@ -599,19 +612,23 @@ inline CPX  sinhc  (CPX a         ) { TRC("cpx") cpx_t r = mad_cpx_sinhc(C(a)); 
 inline CPX  asinc  (CPX a         ) { TRC("cpx") cpx_t r = mad_cpx_asinc(C(a)); return CPX(RE(r),IM(r)); }
 
 inline std::pair<CPX,CPX> sincosq(CPX a) { TRC("cpx")
-  return { mad_cpx_sincrt(a), mad_cpx_cosrt(a) };
+  cpx_t s = mad_cpx_sincrt(C(a)), c = mad_cpx_cosrt(C(a));
+  return { CPX(RE(s),IM(s)), CPX(RE(c),IM(c)) };
 }
 
 inline std::pair<CPX,CPX> sincoshq(CPX a) { TRC("cpx")
-  return { mad_cpx_sinhcrt(a), mad_cpx_coshrt(a) };
+  cpx_t s = mad_cpx_sinhcrt(C(a)), c = mad_cpx_coshrt(C(a));
+  return { CPX(RE(s),IM(s)), CPX(RE(c),IM(c)) };
 }
 
 inline std::pair<CPX,CPX> sincosmq(CPX a) { TRC("cpx")
-  return { mad_cpx_sincmrt(a), mad_cpx_cosmrt(a) };
+  cpx_t s = mad_cpx_sincmrt(C(a)), c = mad_cpx_cosmrt(C(a));
+  return { CPX(RE(s),IM(s)), CPX(RE(c),IM(c)) };
 }
 
 inline std::pair<CPX,CPX> sincoshmq(CPX a) { TRC("cpx")
-  return { mad_cpx_sinhcmrt(a), mad_cpx_coshmrt(a) };
+  cpx_t s = mad_cpx_sinhcmrt(C(a)), c = mad_cpx_coshmrt(C(a));
+  return { CPX(RE(s),IM(s)), CPX(RE(c),IM(c)) };
 }
 
 inline ord_t ord (const ctpsa_t *a) { TRC("tpsa")
@@ -727,8 +744,9 @@ FUN(erfc  );
 
 #define FUN(F) \
 template <class A> \
-inline std::pair<T,T> F (const tpsa_base<A> &a) {  TRC("baz") \
-  T s(a), c(a); mad_ctpsa_ ## F (a.ptr(), s.ptr(), c.ptr()); return {s, c}; \
+inline std::pair<T,T> F (const ctpsa_base<A> &a) {  TRC("baz") \
+  T s(a), c(a); mad_ctpsa_ ## F (a.ptr(), s.ptr(), c.ptr()); \
+  return std::pair<T,T>(s, c); \
 }
 
 FUN(sincosq);
