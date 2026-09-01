@@ -29,39 +29,68 @@
 // --- multiplication helpers -------------------------------------------------o
 
 static inline void
-hpoly_diag_mul(const NUM *ca, const NUM *cb, NUM *cc, ssz_t nb,
+hpoly_diag_mul(const NUM *ca, const NUM *cb, NUM * restrict cc, ssz_t nb,
                  const idx_t l[], const idx_t *idx[])
 {
   // asymm: c[2 2] = a[2 0]*b[0 2] + a[0 2]*b[2 0]
-  FOR(ib,nb) if (cb[ib] || ca[ib])
+  // cc is restrict (mul() guarantees c aliases neither a nor b), so the
+  // ib-invariant loads and the l row base hoist out of the inner loop.
+  FOR(ib,nb) if (cb[ib] || ca[ib]) {
+    const NUM a_ib = ca[ib], b_ib = cb[ib];
+    const idx_t *lb = l + hpoly_idx(ib,0,nb);
     FOR(ia, idx[0][ib], idx[1][ib]) {
-      idx_t ic = l[hpoly_idx(ib,ia,nb)];
-      if (ic >= 0) cc[ic] += ca[ia]*cb[ib] + (ia != ib)*ca[ib]*cb[ia];
+      idx_t ic = lb[ia];
+      if (ic >= 0) cc[ic] += ca[ia]*b_ib + (ia != ib)*a_ib*cb[ia];
     }
+  }
 }
 
 static inline void
 hpoly_sym_mul(const NUM *ca1, const NUM *cb1, const NUM *ca2, const NUM *cb2,
-              NUM *cc, ssz_t na, ssz_t nb, const idx_t l[], const idx_t *idx[])
+              NUM * restrict cc, ssz_t na, ssz_t nb,
+              const idx_t l[], const idx_t *idx[])
 {
   // na > nb so longer loop is inside
-  FOR(ib,nb) if (cb1[ib] || ca2[ib])
+  FOR(ib,nb) if (cb1[ib] || ca2[ib]) {
+    const NUM b1_ib = cb1[ib], a2_ib = ca2[ib];
+    const idx_t *lb = l + hpoly_idx(ib,0,na);
     FOR(ia, idx[0][ib], idx[1][ib]) {
-      idx_t ic = l[hpoly_idx(ib,ia,na)];
-      if (ic >= 0) cc[ic] += ca1[ia]*cb1[ib] + ca2[ib]*cb2[ia];
+      idx_t ic = lb[ia];
+      if (ic >= 0) cc[ic] += ca1[ia]*b1_ib + a2_ib*cb2[ia];
     }
+  }
 }
 
 static inline void
-hpoly_asym_mul(const NUM *ca, const NUM *cb, NUM *cc, ssz_t na, ssz_t nb,
+hpoly_asym_mul(const NUM *ca, const NUM *cb, NUM * restrict cc,
+               ssz_t na, ssz_t nb, const idx_t l[], const idx_t *idx[], NUM s)
+{
+  // oa > ob so longer loop is inside; s is a compile-time constant at every
+  // call site (1 for a*b, 2 for the a==b sym case, see hpoly_mul).
+  FOR(ib,nb) if (cb[ib]) {
+    const NUM b_ib = s*cb[ib];
+    const idx_t *lb = l + hpoly_idx(ib,0,na);
+    FOR(ia, idx[0][ib], idx[1][ib]) {
+      idx_t ic = lb[ia];
+      if (ic >= 0) cc[ic] += ca[ia]*b_ib;
+    }
+  }
+}
+
+// squaring: a == b, so the two products of hpoly_diag_mul coincide and only
+// the off-diagonal ones need doubling -- half the multiplies.
+static inline void
+hpoly_diag_sqr(const NUM *ca, NUM * restrict cc, ssz_t nb,
                const idx_t l[], const idx_t *idx[])
 {
-  // oa > ob so longer loop is inside
-  FOR(ib,nb) if (cb[ib])
+  FOR(ib,nb) if (ca[ib]) {
+    const NUM a_ib = ca[ib];
+    const idx_t *lb = l + hpoly_idx(ib,0,nb);
     FOR(ia, idx[0][ib], idx[1][ib]) {
-      idx_t ic = l[hpoly_idx(ib,ia,na)];
-      if (ic >= 0) cc[ic] += ca[ia]*cb[ib];
+      idx_t ic = lb[ia];
+      if (ic >= 0) cc[ic] += (ia != ib ? 2 : 1)*ca[ia]*a_ib;
     }
+  }
 }
 
 static inline void
@@ -72,6 +101,7 @@ hpoly_mul(const T *a, const T *b, T *c, const ord_t *ocs, log_t in_parallel)
   const NUM *ca = a->coef, *cb = b->coef;
   NUM   *cc = c->coef;
   idx_t hod = d->mo/2;
+  const log_t sqr = a == b; // squaring: halve the work (see kernels above)
   bit_t nza = mad_bit_mask(~0ull, a->lo, a->hi);
   bit_t nzb = mad_bit_mask(~0ull, b->lo, b->hi);
   ord_t lo = MAX(c->lo,3);
@@ -97,15 +127,18 @@ hpoly_mul(const T *a, const T *b, T *c, const ord_t *ocs, log_t in_parallel)
 
       if (mad_bit_tst(nza & nzb,oa) && mad_bit_tst(nza & nzb,ob)) {
         //printf("hpoly__sym_mul (%d) %2d+%2d=%2d\n", ocs[0], oa,ob,oc);
-        hpoly_sym_mul(ca+o2i[oa],cb+o2i[ob],ca+o2i[ob],cb+o2i[oa],cc,na,nb,lc,idx);
+        if (sqr) // both products are a[oa][ia]*a[ob][ib]: one multiply, doubled
+          hpoly_asym_mul(ca+o2i[oa],cb+o2i[ob],cc,na,nb,lc,idx,2);
+        else
+          hpoly_sym_mul(ca+o2i[oa],cb+o2i[ob],ca+o2i[ob],cb+o2i[oa],cc,na,nb,lc,idx);
       }
       else if (mad_bit_tst(nza,oa) && mad_bit_tst(nzb,ob)) {
         //printf("hpoly_asym_mul1(%d) %2d+%2d=%2d\n", ocs[0], oa,ob,oc);
-        hpoly_asym_mul(ca+o2i[oa],cb+o2i[ob],cc,na,nb,lc,idx);
+        hpoly_asym_mul(ca+o2i[oa],cb+o2i[ob],cc,na,nb,lc,idx,1);
       }
       else if (mad_bit_tst(nza,ob) && mad_bit_tst(nzb,oa)) {
         //printf("hpoly_asym_mul2(%d) %2d+%2d=%2d\n", ocs[0], ob,oa,oc);
-        hpoly_asym_mul(cb+o2i[oa],ca+o2i[ob],cc,na,nb,lc,idx);
+        hpoly_asym_mul(cb+o2i[oa],ca+o2i[ob],cc,na,nb,lc,idx,1);
       }
     }
     // even oc, diagonal case
@@ -117,7 +150,8 @@ hpoly_mul(const T *a, const T *b, T *c, const ord_t *ocs, log_t in_parallel)
                               d->L_idx[hoc*hod + hoc][idx1] };
       assert(lc); assert(idx[0] && idx[1]);
       //printf("hpoly_diag_mul (%d) %2d+%2d=%2d\n", ocs[0], hoc,hoc,oc);
-      hpoly_diag_mul(ca+o2i[hoc],cb+o2i[hoc],cc,nb,lc,idx);
+      if (sqr) hpoly_diag_sqr(ca+o2i[hoc],       cc,nb,lc,idx);
+      else     hpoly_diag_mul(ca+o2i[hoc],cb+o2i[hoc],cc,nb,lc,idx);
     }
   }
 }
@@ -454,7 +488,10 @@ FUN(mul) (const T *a, const T *b, T *r)
       const idx_t *lc = d->L[hod+1];
       const idx_t *idx[2] = { d->L_idx[hod+1][0], d->L_idx[hod+1][2] };
       assert(lc);
-      hpoly_diag_mul(a->coef+o2i[1], b->coef+o2i[1], c->coef, o2i[2]-o2i[1], lc, idx);
+      if (a == b)
+        hpoly_diag_sqr(a->coef+o2i[1],                c->coef, o2i[2]-o2i[1], lc, idx);
+      else
+        hpoly_diag_mul(a->coef+o2i[1], b->coef+o2i[1], c->coef, o2i[2]-o2i[1], lc, idx);
     }
 
     // order 3+
