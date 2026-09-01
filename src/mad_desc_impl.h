@@ -53,6 +53,7 @@ struct desc_ { // warning: must be identical to LuaJIT def (see mad_gtpsa.mad)
               // end of compatibility with LuaJIT FFI
 
   int   uno, nth;    // user provided no, max #threads or 1
+  log_t Ldns;        // L rows hold no -1 within [START,END) -> mul skips the test
   ssz_t nc;          // number of coefs (max length of TPSA)
   ssz_t pmul, pcomp; // thresholds for parallel mult and compose (0 = disable)
 

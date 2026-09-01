@@ -654,6 +654,11 @@ get_LC_idxs (ord_t oa, ord_t ob, D *d)
         LC_idx[SPLIT][ib] = ia;
         break;
       }
+
+    // a row is dense if it holds no invalid product between its bounds; when
+    // every row is, hpoly_mul can drop the ic >= 0 test from its inner loops.
+    for (ia = LC_idx[START][ib]; ia < LC_idx[END][ib]; ++ia)
+      if (lc[hpoly_idx(ib,ia,cols)] < 0) { d->Ldns = FALSE; break; }
   }
 
 #if DESC_DEBUG > 2
@@ -1020,6 +1025,7 @@ desc_build (int nn, ord_t mo, int np, ord_t po, const ord_t no_[nn], log_t share
     tbl_by_var(d);
     tbl_by_ord(d); if (DESC_DEBUG && (err = tbl_check_T(d))) { eid=1; goto error; }
     tbl_set_H (d); if (DESC_DEBUG && (err = tbl_check_H(d))) { eid=2; goto error; }
+    d->Ldns = TRUE;
     tbl_set_L (d); if (DESC_DEBUG && (err = tbl_check_L(d))) { eid=3; goto error; }
     set_thread(d);
   } else {
@@ -1036,6 +1042,7 @@ desc_build (int nn, ord_t mo, int np, ord_t po, const ord_t no_[nn], log_t share
     d->H       = dc->H;
     d->L       = dc->L;
     d->L_idx   = dc->L_idx;
+    d->Ldns    = dc->Ldns;
     d->prms    = mad_malloc(d->nc * sizeof *d->prms);
     d->size   += d->nc * sizeof *d->prms;
 
