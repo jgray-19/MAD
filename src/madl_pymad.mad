@@ -287,9 +287,16 @@ end
 local send_ref = \s -> s
 local recv_ref = \s -> assert(load(recv_str(s),nil,nil,s._env), "reference not found")()
 
+local function recv_eof (self)
+  _C.fclose(self._toPy)
+  self._run = false
+  return nil
+end
+
 -- dispatch tables ------------------------------------------------------------o
 
 local type_fun = {
+  eof_ = { recv = recv_eof },
   nil_ = { send = send_nil , recv = recv_nil  },
   bool = { send = send_bool, recv = recv_bool },
   str_ = { send = send_str , recv = recv_str  },
@@ -353,12 +360,13 @@ end
 
 local function run (self)
   local errfun = \err -> catch_err(err, self)
+  local str = self:recv()
   while self._run do
-    local str = self:recv()
     local fun, err = load(str, nil, nil, self._env) -- Catch load error
     if fun then fun, err = xpcall(fun, errfun)      -- Catch run  error
            else err = errfun(err) end
     if err then io.stderr:write(err) end
+    local str = self:recv() ! May set _run to false if EOF
   end
 end
 
@@ -392,7 +400,7 @@ local function send (self, a, dat_)
 end
 
 local function recv (self)
-  local typ = io.read(4)
+  local typ = io.read(4) or 'eof_'
   return assert(type_fun[typ], "unsupported data type").recv(self)
 end
 
